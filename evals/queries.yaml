@@ -1,0 +1,44 @@
+- id: meeting-agent
+  idea: "Toplantıya katılan ve not tutan bir yapay zeka ajanı"
+  layers:
+    - name: asr
+      query: "faster whisper"
+      hf_task: "automatic-speech-recognition"
+      expect_any: ["whisper", "faster-whisper", "whisperX"]
+    - name: diarization
+      query: "speaker diarization"
+      hf_task: null
+      expect_any: ["pyannote-audio", "whisperX", "simple-diarizer"]
+  constraints:
+    commercial_use: true
+    max_vram_gb: 12.0
+
+- id: pdf-rag
+  idea: "Şirket PDF'leri üzerinde soru-cevap yapan yerel RAG sistemi"
+  layers:
+    - name: pdf_parser
+      query: "pdf parser"
+      hf_task: null
+      expect_any: ["pypdf", "pdfplumber", "marker", "pymupdf"]
+    - name: embeddings
+      query: "sentence transformers"
+      hf_task: "feature-extraction"
+      expect_any: ["bge", "all-MiniLM", "e5", "sentence-transformers"]
+  constraints:
+    commercial_use: true
+    max_vram_gb: 8.0
+
+- id: local-voice-assistant
+  idea: "Tamamen yerelde çalışan düşük gecikmeli sesli asistan"
+  layers:
+    - name: vad
+      query: "voice activity detection"
+      hf_task: null
+      expect_any: ["silero-vad", "webrtcvad"]
+    - name: tts
+      query: "text to speech"
+      hf_task: "text-to-speech"
+      expect_any: ["edge-tts", "bark", "piper", "xtts"]
+  constraints:
+    commercial_use: false
+    max_vram_gb: 16.0
