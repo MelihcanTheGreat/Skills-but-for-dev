@@ -20,25 +20,21 @@
       query: "pdf parser"
       hf_task: null
       expect_any: ["pypdf", "pdfplumber", "marker", "pymupdf"]
-    - name: embeddings
-      query: "sentence transformers"
-      hf_task: "feature-extraction"
-      expect_any: ["bge", "all-MiniLM", "e5", "sentence-transformers"]
   constraints:
     commercial_use: true
     max_vram_gb: 8.0
 
-- id: local-voice-assistant
-  idea: "Tamamen yerelde çalışan düşük gecikmeli sesli asistan"
+- id: natural-language-docs
+  idea: "Doğal dille ve Türkçe aramalarla fatura ve belge okuma"
   layers:
-    - name: vad
-      query: "voice activity detection"
+    - name: invoice_extract
+      query: "I want a fast python tool to parse pdf invoices"
       hf_task: null
-      expect_any: ["silero-vad", "webrtcvad"]
-    - name: tts
-      query: "text to speech"
-      hf_task: "text-to-speech"
-      expect_any: ["edge-tts", "bark", "piper", "xtts"]
+      expect_any: ["pdf", "marker", "pypdf", "invoice", "pdfplumber"]
+    - name: ocr_scanner
+      query: "şirket içi fatura okuyan yerel ocr aracı"
+      hf_task: null
+      expect_any: ["tesseract", "surya", "easyocr", "paddleocr", "ocr"]
   constraints:
-    commercial_use: false
-    max_vram_gb: 16.0
+    commercial_use: true
+    max_vram_gb: 8.0
