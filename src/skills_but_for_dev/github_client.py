@@ -113,6 +113,17 @@ class GitHubClient:
             return vel, cached.get("anomaly_warning")
 
         url = f"{BASE_URL}/repos/{owner}/{repo}/stargazers/history"
+        if not rate_limiter.can_make_core_request(min_remaining=5):
+            avg_per_day = stars / max(1.0, float(created_days_ago))
+            vel = StarVelocity(
+                v4=round(avg_per_day, 2),
+                v12=round(avg_per_day, 2),
+                accel=1.0,
+                rel_v4=round(avg_per_day / max(stars, 1), 5),
+                source="estimated",
+            )
+            return vel, None
+
         try:
             resp = await self.http_client.get(url, params={"per_page": 30})
             rate_limiter.update_from_headers(resp, is_search=False)
@@ -383,13 +394,16 @@ class GitHubClient:
         candidates_a = [self._parse_raw_candidate(it, "A") for it in items_a]
 
         # 2. Fetch Bucket B (Momentum/Rising, sort=best match)
-        q_b = f"{base_query} stars:75..3500 pushed:>{date_b} fork:false archived:false"
-        items_b = await self._search_raw(q_b, sort=None)
-        candidates_b = [self._parse_raw_candidate(it, "B") for it in items_b]
+        # In unauthenticated mode, if Bucket A already found 6+ candidates, skip Bucket B to conserve 10 req/min search limit
+        candidates_b: list[GitHubRepoCandidate] = []
+        if config.token_source != "none" or len(candidates_a) < 6:
+            q_b = f"{base_query} stars:75..3500 pushed:>{date_b} fork:false archived:false"
+            items_b = await self._search_raw(q_b, sort=None)
+            candidates_b = [self._parse_raw_candidate(it, "B") for it in items_b]
 
-        # 3. Optional Bucket C (Backup if sparse)
+        # 3. Optional Bucket C (Backup if sparse, authenticated only)
         candidates_c: list[GitHubRepoCandidate] = []
-        if len(candidates_a) + len(candidates_b) < config.min_candidates_before_c:
+        if config.token_source != "none" and (len(candidates_a) + len(candidates_b) < config.min_candidates_before_c):
             q_c = f"{base_query} created:>{date_c} stars:>30 fork:false archived:false"
             items_c = await self._search_raw(q_c, sort=None)
             candidates_c = [self._parse_raw_candidate(it, "C") for it in items_c]
@@ -426,8 +440,8 @@ class GitHubClient:
         deduped_a.sort(key=pre_score_a, reverse=True)
         deduped_b.sort(key=pre_score_b, reverse=True)
 
-        quota_a = config.pre_score_quota_a
-        quota_b = config.pre_score_quota_b
+        quota_a = config.pre_score_quota_a if config.token_source != "none" else 3
+        quota_b = config.pre_score_quota_b if config.token_source != "none" else 3
 
         # Transfer unused quota between buckets
         if len(deduped_a) < quota_a:

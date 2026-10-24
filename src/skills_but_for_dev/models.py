@@ -21,7 +21,7 @@ class StarVelocity(BaseModel):
     v12: float | None = None  # Daily star avg over last 12 weeks (84 days)
     accel: float | None = None  # v4 / v12 (acceleration factor, >1 accelerating)
     rel_v4: float | None = None  # v4 / total_stars (relative growth)
-    source: Literal["history", "unavailable"] = "history"
+    source: Literal["history", "estimated", "unavailable"] = "history"
 
 
 class RepoScoreBreakdown(BaseModel):

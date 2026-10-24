@@ -1,7 +1,10 @@
 """Configuration management for skills-but-for-dev."""
 
 import json
+import logging
 import os
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -9,6 +12,36 @@ from dotenv import load_dotenv
 from platformdirs import user_cache_dir
 
 load_dotenv()
+logger = logging.getLogger(__name__)
+
+
+def detect_github_token() -> tuple[str | None, str]:
+    """Detect GitHub token from ENV (GITHUB_TOKEN / GH_TOKEN) or GitHub CLI (gh auth token).
+
+    Returns:
+        (token, source) where source is 'env', 'gh_cli', or 'none'.
+    """
+    env_token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+    if env_token and env_token.strip():
+        return env_token.strip(), "env"
+
+    gh_path = shutil.which("gh")
+    if gh_path:
+        try:
+            res = subprocess.run(
+                [gh_path, "auth", "token"],
+                capture_output=True,
+                text=True,
+                timeout=2.0,
+            )
+            if res.returncode == 0:
+                cli_token = res.stdout.strip()
+                if cli_token and len(cli_token) > 8:
+                    return cli_token, "gh_cli"
+        except Exception as e:
+            logger.debug("Failed checking gh CLI token: %s", e)
+
+    return None, "none"
 
 
 @dataclass
@@ -47,10 +80,9 @@ class TTLSettings:
 
 @dataclass
 class Settings:
-    # API Tokens
-    github_token: str | None = field(
-        default_factory=lambda: os.getenv("GITHUB_TOKEN") or None
-    )
+    # API Tokens & Discovery Source
+    github_token: str | None = None
+    token_source: str = "none"  # "env", "gh_cli", or "none"
     hf_token: str | None = field(
         default_factory=lambda: os.getenv("HF_TOKEN") or None
     )
@@ -87,6 +119,14 @@ class Settings:
     ttls: TTLSettings = field(default_factory=TTLSettings)
 
     def __post_init__(self):
+        # Auto-detect token if not already explicitly assigned
+        if not self.github_token:
+            token, source = detect_github_token()
+            self.github_token = token
+            self.token_source = source
+        else:
+            self.token_source = "env"
+
         # Override weights from SKILLS_BUT_FOR_DEV_WEIGHTS JSON env var if present
         raw_weights = os.getenv("SKILLS_BUT_FOR_DEV_WEIGHTS")
         if raw_weights:
@@ -100,4 +140,3 @@ class Settings:
 
 
 config = Settings()
-

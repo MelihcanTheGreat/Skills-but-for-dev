@@ -11,7 +11,16 @@ mcp = FastMCP("skills-but-for-dev")
 @mcp.tool()
 async def ping() -> str:
     """Check if the skills-but-for-dev MCP server is operational and view version & token status."""
-    gh_status = "configured" if config.github_token else "unauthenticated (lower rate limits)"
+    if config.token_source == "env":
+        gh_status = "authenticated (source: environment variable)"
+    elif config.token_source == "gh_cli":
+        gh_status = "authenticated (source: GitHub CLI 'gh auth token')"
+    else:
+        gh_status = (
+            "unauthenticated (60 req/hr limit). "
+            "Tip: run 'gh auth login' or export GITHUB_TOKEN to unlock 5,000 req/hr."
+        )
+
     hf_status = "configured" if config.hf_token else "unauthenticated"
     return (
         f"skills-but-for-dev v{__version__} is active.\n"

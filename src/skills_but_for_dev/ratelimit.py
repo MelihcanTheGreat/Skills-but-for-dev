@@ -1,4 +1,4 @@
-﻿"""Rate limit tracking and throttling for GitHub and external APIs."""
+"""Rate limit tracking and throttling for GitHub and external APIs."""
 
 import asyncio
 import logging
@@ -43,7 +43,9 @@ class GitHubRateLimiter:
                 oldest = self.search_request_timestamps[0]
                 sleep_time = max(0.1, 60.0 - (now - oldest) + 0.5)
                 logger.warning(
-                    "GitHub Search rate limit throttle: pausing for %.2fs", sleep_time
+                    "GitHub Search rate limit throttle: pausing for %.2fs to respect quota. "
+                    "Tip: Run 'gh auth login' or set GITHUB_TOKEN to bypass throttling.",
+                    sleep_time,
                 )
                 await asyncio.sleep(sleep_time)
 
@@ -76,13 +78,13 @@ class GitHubRateLimiter:
                 reset_secs = max(0, int((self.search_reset_at or 0) - time.time()))
                 self.last_search_error = (
                     f"GitHub Search rate limit reached (HTTP {response.status_code}). "
-                    f"Resets in {reset_secs}s. Set GITHUB_TOKEN in environment for 30 req/min limit."
+                    f"Resets in {reset_secs}s. Quick fix: run 'gh auth login' or export GITHUB_TOKEN."
                 )
             else:
                 reset_secs = max(0, int((self.core_reset_at or 0) - time.time()))
                 self.last_core_error = (
                     f"GitHub Core API rate limit reached (HTTP {response.status_code}). "
-                    f"Resets in {reset_secs}s. Set GITHUB_TOKEN in environment for 5,000 req/hr limit."
+                    f"Resets in {reset_secs}s. Quick fix: run 'gh auth login' or export GITHUB_TOKEN to unlock 5,000 req/hr."
                 )
         elif response.status_code == 200:
             if is_search:
