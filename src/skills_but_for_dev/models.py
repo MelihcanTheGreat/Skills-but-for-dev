@@ -1,4 +1,4 @@
-"""Data models and schemas for stack-scout."""
+"""Data models and schemas for skills-but-for-dev."""
 
 from typing import Literal
 
@@ -31,6 +31,7 @@ class RepoScoreBreakdown(BaseModel):
     recency: float
     relevance: float
     maintenance: float | None = None
+    pypi_adoption: float | None = None
     priors_used: list[str] = Field(default_factory=list)
 
 
@@ -54,6 +55,7 @@ class GitHubRepoCandidate(BaseModel):
     anomaly_warning: str | None = None  # e.g., "dormant_spike"
     is_finalist: bool = False
     maintenance_score: float | None = None
+    pypi_downloads_30d: int | None = None
 
 
 class VramEstimate(BaseModel):

@@ -1,4 +1,4 @@
-﻿"""Scoring engine with conservative priors and two-stage ranking."""
+"""Scoring engine with conservative priors and two-stage ranking."""
 
 import math
 
@@ -147,7 +147,9 @@ def score_stage1(
 def score_stage2_finalists(
     finalists: list[GitHubRepoCandidate],
 ) -> list[GitHubRepoCandidate]:
-    """Re-rank the top 3 finalists incorporating maintenance scores."""
+    """Re-rank the top 3 finalists incorporating maintenance scores and real-world PyPI adoption."""
+    from skills_but_for_dev.pypi_client import calculate_pypi_adoption_score
+
     w = config.weights
     for cand in finalists:
         m_score = cand.maintenance_score
@@ -157,10 +159,16 @@ def score_stage2_finalists(
                 cand.score_breakdown.priors_used.append("maintenance")
             cand.confidence = "low"
 
-        combined = w.stage1_weight * cand.score + w.maintenance_weight * m_score
+        pypi_score, pypi_prior = calculate_pypi_adoption_score(cand.pypi_downloads_30d)
+        if pypi_prior and cand.score_breakdown:
+            cand.score_breakdown.priors_used.append("pypi_adoption")
+
+        # Balanced formula: 80% stage1 score + 10% maintenance + 10% real PyPI adoption
+        combined = 0.80 * cand.score + 0.10 * m_score + 0.10 * pypi_score
         cand.score = round(combined, 4)
         if cand.score_breakdown:
             cand.score_breakdown.maintenance = round(m_score, 3)
+            cand.score_breakdown.pypi_adoption = round(pypi_score, 3)
 
     return sorted(finalists, key=lambda c: c.score, reverse=True)
 

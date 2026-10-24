@@ -168,7 +168,7 @@ async def get_readme(
                 ]
                 for cdn_url in cdn_urls:
                     try:
-                        resp = await client.get(cdn_url, headers={"User-Agent": "stack-scout/0.1.0"})
+                        resp = await client.get(cdn_url, headers={"User-Agent": "skills-but-for-dev/0.1.0"})
                         if resp.status_code == 200 and resp.text.strip():
                             raw_text = resp.text
                             break
@@ -177,7 +177,7 @@ async def get_readme(
 
                 # 2. Fallback to GitHub REST API if CDN misses
                 if not raw_text:
-                    headers = {"Accept": "application/vnd.github.raw+json", "User-Agent": "stack-scout/0.1.0"}
+                    headers = {"Accept": "application/vnd.github.raw+json", "User-Agent": "skills-but-for-dev/0.1.0"}
                     if config.github_token:
                         headers["Authorization"] = f"Bearer {config.github_token}"
                     resp = await client.get(f"https://api.github.com/repos/{id}/readme", headers=headers)
@@ -209,6 +209,7 @@ async def compare_candidates(ids: list[str]) -> dict:
     """Compare a list of repository or model identifiers side-by-side in a structured comparison table."""
     from skills_but_for_dev.github_client import github_client
     from skills_but_for_dev.hf_client import hf_client
+    from skills_but_for_dev.pypi_client import pypi_client
 
     github_items = []
     hf_items = []
@@ -229,6 +230,7 @@ async def compare_candidates(ids: list[str]) -> dict:
                     created_days = details.get("created_days_ago", 0)
                     vel, anomaly = await github_client.get_star_velocity(owner, repo, stars, created_days)
                     m_score = await github_client.get_repo_health(owner, repo)
+                    pypi_downloads = await pypi_client.get_repo_downloads(repo)
                     github_items.append({
                         "id": item_id,
                         "stars": stars,
@@ -242,6 +244,7 @@ async def compare_candidates(ids: list[str]) -> dict:
                         "acceleration": vel.accel,
                         "anomaly_warning": anomaly,
                         "maintenance_score": m_score,
+                        "pypi_downloads_30d": pypi_downloads,
                         "last_pushed_days_ago": details.get("pushed_days_ago"),
                     })
             else:

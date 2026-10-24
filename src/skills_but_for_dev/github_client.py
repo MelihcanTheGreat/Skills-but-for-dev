@@ -1,4 +1,4 @@
-﻿"""GitHub REST client with dual-bucket candidate retrieval, star velocity and health metrics."""
+"""GitHub REST client with dual-bucket candidate retrieval, star velocity and health metrics."""
 
 import asyncio
 import datetime
@@ -15,6 +15,8 @@ from skills_but_for_dev.models import (
     GitHubRepoCandidate,
     StarVelocity,
 )
+from skills_but_for_dev.pypi_client import pypi_client
+from skills_but_for_dev.query_normalizer import normalize_query
 from skills_but_for_dev.ratelimit import rate_limiter
 from skills_but_for_dev.scoring import (
     calculate_popularity_score,
@@ -32,7 +34,7 @@ def _get_headers() -> dict[str, str]:
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "stack-scout/0.1.0",
+        "User-Agent": "skills-but-for-dev/0.1.0",
     }
     if config.github_token:
         headers["Authorization"] = f"Bearer {config.github_token}"
@@ -71,6 +73,7 @@ class GitHubClient:
     async def close(self):
         if self._http_client and not self._http_client.is_closed:
             await self._http_client.aclose()
+        await pypi_client.close()
 
     async def _search_raw(self, query: str, sort: str | None = None) -> list[dict[str, Any]]:
         """Execute raw GitHub repository search with rate limit protection and caching."""
@@ -362,8 +365,10 @@ class GitHubClient:
         date_b = (now - datetime.timedelta(days=config.bucket_b_pushed_days)).strftime("%Y-%m-%d")
         date_c = (now - datetime.timedelta(days=config.bucket_c_created_days)).strftime("%Y-%m-%d")
 
-        query_terms = [t for t in query.strip().split() if t][:3]
-        base_query = " ".join(query_terms)
+        norm = normalize_query(query)
+        effective_query = norm.cleaned_query if norm.cleaned_query else query
+        query_terms = norm.terms if norm.terms else [t for t in query.strip().split() if t][:3]
+        base_query = effective_query
 
         if topics:
             for top in topics[:2]:
@@ -448,14 +453,18 @@ class GitHubClient:
         # Rank by Stage 1 score
         shortlist.sort(key=lambda c: c.score, reverse=True)
 
-        # 6. Stage 2: Fetch health metrics for top finalists concurrently
+        # 6. Stage 2: Fetch health metrics and PyPI adoption for top finalists concurrently
         finalists = shortlist[: config.finalists_count]
 
-        async def _enrich_health(c: GitHubRepoCandidate):
+        async def _enrich_finalists(c: GitHubRepoCandidate):
             c.is_finalist = True
-            c.maintenance_score = await self.get_repo_health(c.owner, c.name)
+            health_task = self.get_repo_health(c.owner, c.name)
+            pypi_task = pypi_client.get_repo_downloads(c.name)
+            m_score, pypi_downloads = await asyncio.gather(health_task, pypi_task)
+            c.maintenance_score = m_score
+            c.pypi_downloads_30d = pypi_downloads
 
-        await asyncio.gather(*[_enrich_health(c) for c in finalists])
+        await asyncio.gather(*[_enrich_finalists(c) for c in finalists])
 
         re_ranked_finalists = score_stage2_finalists(finalists)
 

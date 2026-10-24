@@ -1,4 +1,4 @@
-﻿"""Evaluation runner for measuring recommendation hit rate, freshness, and license compliance."""
+"""Evaluation runner for measuring recommendation hit rate, freshness, and license compliance."""
 
 import asyncio
 from pathlib import Path
@@ -15,7 +15,7 @@ async def run_evaluation(queries_path: Path):
         cases = yaml.safe_load(f)
 
     print("\n=======================================================")
-    print("       STACK-SCOUT EVALUATION RUNNER (EVALS)           ")
+    print("   SKILLS-BUT-FOR-DEV EVALUATION RUNNER (EVALS)        ")
     print("=======================================================\n")
 
     total_layers = 0

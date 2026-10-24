@@ -1,4 +1,4 @@
-"""Configuration management for stack-scout."""
+"""Configuration management for skills-but-for-dev."""
 
 import json
 import os
