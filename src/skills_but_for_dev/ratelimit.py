@@ -14,9 +14,9 @@ class GitHubRateLimiter:
 
     def __init__(self):
         # Search rate limit: 30/min max, safe target: 25/min
-        self.search_semaphore = asyncio.Semaphore(3)
+        self._search_semaphore: asyncio.Semaphore | None = None
         self.search_request_timestamps: list[float] = []
-        self.search_lock = asyncio.Lock()
+        self._search_lock: asyncio.Lock | None = None
 
         # Tracked headers
         self.search_remaining: int | None = None
@@ -26,6 +26,26 @@ class GitHubRateLimiter:
         self.core_reset_at: int | None = None
         self.last_search_error: str | None = None
         self.last_core_error: str | None = None
+
+    @property
+    def search_lock(self) -> asyncio.Lock:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if self._search_lock is None or (loop and getattr(self._search_lock, "_loop", None) != loop):
+            self._search_lock = asyncio.Lock()
+        return self._search_lock
+
+    @property
+    def search_semaphore(self) -> asyncio.Semaphore:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if self._search_semaphore is None or (loop and getattr(self._search_semaphore, "_loop", None) != loop):
+            self._search_semaphore = asyncio.Semaphore(3)
+        return self._search_semaphore
 
     async def acquire_search_slot(self) -> None:
         """Throttle requests to stay within safe search limit (25/min if authenticated, 8/min if unauthenticated)."""

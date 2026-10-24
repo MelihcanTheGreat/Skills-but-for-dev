@@ -1,4 +1,4 @@
-﻿"""Asynchronous SQLite cache with WAL mode and TTL support."""
+"""Asynchronous SQLite cache with WAL mode and TTL support."""
 
 import asyncio
 import hashlib
@@ -33,12 +33,33 @@ class CacheManager:
         self.db_dir = db_dir or config.cache_dir
         self.db_path = self.db_dir / "cache.db"
         self._db: aiosqlite.Connection | None = None
-        self._lock = asyncio.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._lock_obj: asyncio.Lock | None = None
         self._initialized = False
+
+    @property
+    def lock(self) -> asyncio.Lock:
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+        if self._lock_obj is None or (current_loop and getattr(self._lock_obj, "_loop", None) != current_loop):
+            self._lock_obj = asyncio.Lock()
+        return self._lock_obj
 
     async def _init_db(self) -> None:
         """Create directory and table with WAL and busy timeout pragmas."""
         try:
+            try:
+                current_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                current_loop = None
+
+            if self._db and self._loop != current_loop:
+                self._db = None
+                self._initialized = False
+            self._loop = current_loop
+
             self.db_dir.mkdir(parents=True, exist_ok=True)
             self._db = await aiosqlite.connect(str(self.db_path))
             await self._db.execute("PRAGMA journal_mode=WAL;")
@@ -86,7 +107,7 @@ class CacheManager:
 
     async def get(self, key: str) -> Any | None:
         """Fetch unexpired cached item. Returns None on cache miss, expiry, or error."""
-        async with self._lock:
+        async with self.lock:
             if not self._initialized or not self._db:
                 await self._init_db()
             if not self._db:
@@ -111,7 +132,7 @@ class CacheManager:
 
     async def set(self, key: str, value: Any, ttl_seconds: float) -> None:
         """Store item in cache with TTL. Fails gracefully without throwing."""
-        async with self._lock:
+        async with self.lock:
             if not self._initialized or not self._db:
                 await self._init_db()
             if not self._db:
@@ -137,7 +158,7 @@ class CacheManager:
 
     async def close(self) -> None:
         """Close cache connection."""
-        async with self._lock:
+        async with self.lock:
             if self._db:
                 try:
                     await self._db.close()

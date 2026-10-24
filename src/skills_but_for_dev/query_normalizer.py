@@ -21,6 +21,21 @@ STOP_WORDS = {
     "okur", "yerel", "yerli", "bu", "su", "o", "gibi", "kadar", "icin",
 }
 
+# Subjective developer adjectives and promotional buzzwords.
+# When a query contains both domain terms ('rest', 'api') and modifiers ('lightweight', 'asynchronous'),
+# domain terms take priority so modifiers don't displace critical technical nouns.
+MODIFIER_WORDS = {
+    # English subjective qualifiers / adjectives
+    "lightweight", "asynchronous", "minimal", "modern", "advanced",
+    "robust", "extensible", "flexible", "secure", "scalable", "production",
+    "ready", "powerful", "pure", "efficient", "complete", "tiny", "small",
+    "super", "ultra", "automated", "autonomous", "intelligent", "smart",
+
+    # Turkish subjective qualifiers
+    "hafif", "esnek", "modern", "guclu", "guvenli", "olceklenebilir", "gelismis",
+    "tam", "kapsamli", "kucuk", "minik", "saf", "verimli", "akilli", "otomatik",
+}
+
 # Programming language tokens mapped to GitHub language search filters
 PROGRAMMING_LANGUAGES = {
     "python": "python",
@@ -92,11 +107,14 @@ def normalize_query(query: str, max_terms: int = 3) -> NormalizedQuery:
 
     GitHub search syntax treats spaces as strict AND operators. Queries with 4+ words
     frequently return 0 results. This function strips noise words, extracts programming
-    language filters, and preserves domain-specific terminology.
+    language filters, prioritizes domain nouns over modifier adjectives, and preserves
+    domain-specific terminology.
 
     Example:
         'I want a fast python tool to parse pdf invoices'
         -> terms: ['parse', 'pdf', 'invoice'], detected_language: 'python'
+        'lightweight asynchronous rest api framework python'
+        -> terms: ['rest', 'api'], detected_language: 'python'
     """
     raw = query.strip()
     if not raw:
@@ -106,7 +124,8 @@ def normalize_query(query: str, max_terms: int = 3) -> NormalizedQuery:
     cleaned = re.sub(r"[^\w\s-]", " ", raw)
     raw_tokens = [t for t in re.split(r"[\s_]+", cleaned) if t]
 
-    meaningful: list[str] = []
+    domain_terms: list[str] = []
+    modifier_terms: list[str] = []
     detected_language: str | None = None
 
     for token in raw_tokens:
@@ -118,8 +137,19 @@ def normalize_query(query: str, max_terms: int = 3) -> NormalizedQuery:
             continue
 
         if normalized not in STOP_WORDS and len(normalized) > 1:
-            if normalized not in meaningful:
-                meaningful.append(normalized)
+            if normalized in MODIFIER_WORDS:
+                if normalized not in modifier_terms:
+                    modifier_terms.append(normalized)
+            else:
+                if normalized not in domain_terms:
+                    domain_terms.append(normalized)
+
+    # Prioritize domain terms over marketing modifiers. If domain terms exist,
+    # fill remaining slots up to max_terms with modifiers only if domain terms < 2.
+    if len(domain_terms) >= 2:
+        meaningful = domain_terms
+    else:
+        meaningful = domain_terms + modifier_terms
 
     # Fallback to original tokens if all were pruned
     if not meaningful:

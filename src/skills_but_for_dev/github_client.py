@@ -378,34 +378,74 @@ class GitHubClient:
         date_c = (now - datetime.timedelta(days=config.bucket_c_created_days)).strftime("%Y-%m-%d")
 
         norm = normalize_query(query)
-        effective_query = norm.cleaned_query if norm.cleaned_query else query
         query_terms = norm.terms if norm.terms else [t for t in query.strip().split() if t][:3]
-        base_query = effective_query
-
-        if topics:
-            for top in topics[:2]:
-                base_query += f" topic:{top}"
         effective_language = language or norm.detected_language
-        if effective_language:
-            base_query += f" language:{effective_language}"
+
+        def _build_query(terms: list[str], lang: str | None, stars_expr: str, pushed_date: str | None = None) -> str:
+            parts = [" ".join(terms)]
+            if topics:
+                for top in topics[:2]:
+                    parts.append(f"topic:{top}")
+            if lang:
+                parts.append(f"language:{lang}")
+            parts.append(stars_expr)
+            if pushed_date:
+                parts.append(f"pushed:>{pushed_date}")
+            parts.append("fork:false archived:false")
+            return " ".join(parts)
 
         # 1. Fetch Bucket A (Leaders, sort=stars)
-        q_a = f"{base_query} stars:>500 pushed:>{date_a} fork:false archived:false"
+        q_a = _build_query(query_terms, effective_language, "stars:>500", date_a)
         items_a = await self._search_raw(q_a, sort="stars")
         candidates_a = [self._parse_raw_candidate(it, "A") for it in items_a]
+
+        active_terms = list(query_terms)
+        active_language = effective_language
+
+        # Query Relaxation Fallback 1: Term Relaxation
+        # GitHub search syntax treats space as strict AND. Specialized queries like
+        # 'parse pdf invoice' fail on general tools ('pypdf') whose descriptions lack 'invoice'.
+        # If Bucket A yielded 0 candidates and we have 3 terms, relax by dropping the last term.
+        if not candidates_a and len(active_terms) >= 3:
+            relaxed_terms = active_terms[:2]
+            logger.info("Bucket A empty for '%s'. Relaxing query terms to %s", " ".join(active_terms), relaxed_terms)
+            q_a_relaxed = _build_query(relaxed_terms, active_language, "stars:>500", date_a)
+            items_a_relaxed = await self._search_raw(q_a_relaxed, sort="stars")
+            if items_a_relaxed:
+                candidates_a = [self._parse_raw_candidate(it, "A") for it in items_a_relaxed]
+                active_terms = relaxed_terms
+
+        # Query Relaxation Fallback 2: Language Filter Relaxation
+        # If Bucket A is STILL empty and a language was specified,
+        # drop language constraint (many top repos are multi-language or C/C++ core with python bindings).
+        if not candidates_a and active_language:
+            logger.info("Bucket A empty with language '%s'. Dropping language filter.", active_language)
+            q_a_no_lang = _build_query(active_terms[:2] if len(active_terms) >= 3 else active_terms, None, "stars:>500", date_a)
+            items_a_no_lang = await self._search_raw(q_a_no_lang, sort="stars")
+            if items_a_no_lang:
+                candidates_a = [self._parse_raw_candidate(it, "A") for it in items_a_no_lang]
+                active_language = None
 
         # 2. Fetch Bucket B (Momentum/Rising, sort=best match)
         # In unauthenticated mode, if Bucket A already found 6+ candidates, skip Bucket B to conserve 10 req/min search limit
         candidates_b: list[GitHubRepoCandidate] = []
         if config.token_source != "none" or len(candidates_a) < 6:
-            q_b = f"{base_query} stars:75..3500 pushed:>{date_b} fork:false archived:false"
+            q_b = _build_query(active_terms, active_language, "stars:75..3500", date_b)
             items_b = await self._search_raw(q_b, sort=None)
             candidates_b = [self._parse_raw_candidate(it, "B") for it in items_b]
+
+        # Query Relaxation Fallback 3: Wide-Net Fallback
+        # If BOTH Bucket A and Bucket B are empty, execute a wide-net search (stars:>15, no push cutoff)
+        if not candidates_a and not candidates_b:
+            logger.info("Both buckets empty for '%s'. Executing wide-net fallback (stars:>15)", " ".join(active_terms))
+            q_wide = _build_query(active_terms, active_language, "stars:>15", None)
+            items_wide = await self._search_raw(q_wide, sort="stars")
+            candidates_b = [self._parse_raw_candidate(it, "B") for it in items_wide]
 
         # 3. Optional Bucket C (Backup if sparse, authenticated only)
         candidates_c: list[GitHubRepoCandidate] = []
         if config.token_source != "none" and (len(candidates_a) + len(candidates_b) < config.min_candidates_before_c):
-            q_c = f"{base_query} created:>{date_c} stars:>30 fork:false archived:false"
+            q_c = _build_query(active_terms, active_language, "stars:>30", None) + f" created:>{date_c}"
             items_c = await self._search_raw(q_c, sort=None)
             candidates_c = [self._parse_raw_candidate(it, "C") for it in items_c]
 

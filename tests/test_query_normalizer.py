@@ -65,3 +65,14 @@ def test_normalize_extracts_language():
     assert "invoice" in norm.terms
     assert "parse" in norm.terms
 
+
+def test_normalize_prioritizes_domain_terms_over_modifiers():
+    # Modifiers like 'lightweight' and 'asynchronous' shouldn't displace 'rest' and 'api'
+    query = "lightweight asynchronous rest api framework python"
+    norm = normalize_query(query, max_terms=3)
+    assert norm.detected_language == "python"
+    assert "rest" in norm.terms
+    assert "api" in norm.terms
+    assert "lightweight" not in norm.terms
+    assert "asynchronous" not in norm.terms
+
