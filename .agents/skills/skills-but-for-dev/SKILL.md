@@ -1,9 +1,9 @@
 ---
-name: stack-scout
+name: skills-but-for-dev
 description: Yeni bir proje, özellik veya AI bileşeni başlatılmadan ÖNCE güncel ve sağlıklı GitHub repoları ile Hugging Face modellerini/Space'lerini keşfetmek için kullan. "X yapan bir uygulama/ajan yapmak istiyorum", "hangi kütüphane/model" gibi isteklerde tetiklenir.
 ---
 
-# stack-scout
+# skills-but-for-dev
 
 Bu skill, kod yazmaya başlamadan önce güncel mimari keşfi ve teknoloji yığını (stack) küratörlüğü yapar. Bilgi kesim tarihinin (knowledge cutoff) ötesine geçerek en güncel, sağlıklı ve lisansı uygun GitHub repolarını ve Hugging Face modellerini bir araya getirir.
 

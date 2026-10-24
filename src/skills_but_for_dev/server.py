@@ -1,20 +1,20 @@
-"""FastMCP Server entry point for stack-scout."""
+"""FastMCP Server entry point for skills-but-for-dev."""
 
 from fastmcp import FastMCP
 
-from stack_scout import __version__
-from stack_scout.config import config
+from skills_but_for_dev import __version__
+from skills_but_for_dev.config import config
 
-mcp = FastMCP("stack-scout")
+mcp = FastMCP("skills-but-for-dev")
 
 
 @mcp.tool()
 async def ping() -> str:
-    """Check if the stack-scout MCP server is operational and view version & token status."""
+    """Check if the skills-but-for-dev MCP server is operational and view version & token status."""
     gh_status = "configured" if config.github_token else "unauthenticated (lower rate limits)"
     hf_status = "configured" if config.hf_token else "unauthenticated"
     return (
-        f"stack-scout v{__version__} is active.\n"
+        f"skills-but-for-dev v{__version__} is active.\n"
         f"- GitHub Token: {gh_status}\n"
         f"- Hugging Face Token: {hf_status}\n"
         f"- Cache Directory: {config.cache_dir}"
@@ -46,7 +46,7 @@ async def search_github_repos(
         List of candidate repositories with real-time star velocity, acceleration factor,
         license classification, anomaly warnings, and two-stage rankings.
     """
-    from stack_scout.github_client import github_client
+    from skills_but_for_dev.github_client import github_client
 
     candidates = await github_client.search_repositories(
         query=query,
@@ -56,7 +56,7 @@ async def search_github_repos(
         limit=limit,
     )
     if not candidates:
-        from stack_scout.ratelimit import rate_limiter
+        from skills_but_for_dev.ratelimit import rate_limiter
         if rate_limiter.last_search_error:
             return [{"error": rate_limiter.last_search_error, "query": query}]
     return [c.model_dump() for c in candidates]
@@ -73,7 +73,7 @@ async def get_repo_health(full_name: str) -> dict:
         Maintenance responsiveness score (0.0 - 1.0) based on releases, contributor breadth,
         and issue resolution speed.
     """
-    from stack_scout.github_client import github_client
+    from skills_but_for_dev.github_client import github_client
 
     parts = full_name.split("/")
     if len(parts) != 2:
@@ -104,7 +104,7 @@ async def search_hf_models(
         commercial_use: True applies penalties for CC-BY-NC or custom restrictive licenses.
         limit: Max candidates to return (default: 8).
     """
-    from stack_scout.hf_client import hf_client
+    from skills_but_for_dev.hf_client import hf_client
 
     candidates = await hf_client.search_models(
         query=query,
@@ -123,7 +123,7 @@ async def search_hf_spaces(query: str, limit: int = 5) -> list[dict]:
     When to use:
     - User wants to see an interactive working demonstration of a model/framework in action.
     """
-    from stack_scout.hf_client import hf_client
+    from skills_but_for_dev.hf_client import hf_client
 
     spaces = await hf_client.search_spaces(query=query, limit=limit)
     return [s.model_dump() for s in spaces]
@@ -147,9 +147,9 @@ async def get_readme(
     """
     import httpx
 
-    from stack_scout.cache import cache, make_cache_key
-    from stack_scout.config import config
-    from stack_scout.sanitize import sanitize_readme
+    from skills_but_for_dev.cache import cache, make_cache_key
+    from skills_but_for_dev.config import config
+    from skills_but_for_dev.sanitize import sanitize_readme
 
     cache_key = make_cache_key("readme_doc", source=source, id=id)
     cached = await cache.get(cache_key)
@@ -207,8 +207,8 @@ async def get_readme(
 @mcp.tool()
 async def compare_candidates(ids: list[str]) -> dict:
     """Compare a list of repository or model identifiers side-by-side in a structured comparison table."""
-    from stack_scout.github_client import github_client
-    from stack_scout.hf_client import hf_client
+    from skills_but_for_dev.github_client import github_client
+    from skills_but_for_dev.hf_client import hf_client
 
     github_items = []
     hf_items = []
@@ -281,16 +281,16 @@ def main():
     if len(sys.argv) > 1:
         cmd = sys.argv[1].lower()
         if cmd in ("--version", "-v"):
-            print(f"stack-scout {__version__}")
+            print(f"skills-but-for-dev {__version__}")
             sys.exit(0)
         elif cmd in ("--help", "-h"):
             print(
-                f"stack-scout v{__version__}: Intelligent tech stack & open-source curator for AI agents.\n\n"
+                f"skills-but-for-dev v{__version__}: Intelligent tech stack & open-source curator for AI agents.\n\n"
                 "Usage:\n"
-                "  stack-scout                   Start MCP server (stdio transport, default)\n"
-                "  stack-scout ping              Check server, token, and cache status\n"
-                "  stack-scout --version         Display version\n"
-                "  stack-scout --help            Display this help message\n"
+                "  skills-but-for-dev                   Start MCP server (stdio transport, default)\n"
+                "  skills-but-for-dev ping              Check server, token, and cache status\n"
+                "  skills-but-for-dev --version         Display version\n"
+                "  skills-but-for-dev --help            Display this help message\n"
             )
             sys.exit(0)
         elif cmd == "ping":
@@ -302,3 +302,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

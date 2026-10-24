@@ -1,4 +1,4 @@
-# stack-scout
+﻿# skills-but-for-dev
 
 [![CI](https://github.com/MelihcanTheGreat/Skills-but-for-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/MelihcanTheGreat/Skills-but-for-dev/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -6,7 +6,7 @@
 
 > **Intelligent technology stack and open-source curator for AI agents (Cursor, Antigravity, and MCP-compatible environments).**
 
-`stack-scout` is a Model Context Protocol (MCP) server and agent skill that recommends **fresh, healthy, and license-compliant** GitHub repositories and Hugging Face models/Spaces before you start writing code.
+`skills-but-for-dev` is a Model Context Protocol (MCP) server and agent skill that recommends **fresh, healthy, and license-compliant** GitHub repositories and Hugging Face models/Spaces before you start writing code.
 
 ---
 
@@ -17,7 +17,7 @@ When coding assistants (Cursor, Antigravity, Claude Code) are asked to *"Build a
 - State-of-the-art voice and speech models released last week on Hugging Face remain invisible.
 - High-star repos with non-commercial (CC-BY-NC) or strong copyleft (GPL) licenses create legal hazards for startups.
 
-`stack-scout` eliminates this blind spot.
+`skills-but-for-dev` eliminates this blind spot.
 
 ---
 
@@ -39,14 +39,14 @@ When coding assistants (Cursor, Antigravity, Claude Code) are asked to *"Build a
 
 ### 2. Run with Zero Installation (`uvx`)
 
-You can launch `stack-scout` directly in any MCP-compatible environment without cloning or managing virtual environments:
+You can launch `skills-but-for-dev` directly in any MCP-compatible environment without cloning or managing virtual environments:
 
 ```json
 {
   "mcpServers": {
-    "stack-scout": {
+    "skills-but-for-dev": {
       "command": "uvx",
-      "args": ["stack-scout"],
+      "args": ["skills-but-for-dev"],
       "env": {
         "GITHUB_TOKEN": "your_github_pat_here"
       }
@@ -61,9 +61,9 @@ You can launch `stack-scout` directly in any MCP-compatible environment without 
 ```json
 {
   "mcpServers": {
-    "stack-scout": {
+    "skills-but-for-dev": {
       "command": "python",
-      "args": ["-m", "stack_scout.server"],
+      "args": ["-m", "skills_but_for_dev.server"],
       "env": {
         "GITHUB_TOKEN": "your_github_pat_here"
       }
@@ -76,9 +76,9 @@ You can launch `stack-scout` directly in any MCP-compatible environment without 
 ```json
 {
   "mcpServers": {
-    "stack-scout": {
+    "skills-but-for-dev": {
       "command": "python",
-      "args": ["-m", "stack_scout.server"],
+      "args": ["-m", "skills_but_for_dev.server"],
       "env": {
         "GITHUB_TOKEN": "your_github_pat_here"
       }
@@ -93,10 +93,10 @@ You can inspect server health, token configuration, and cache paths directly fro
 
 ```bash
 # Check version
-stack-scout --version
+skills-but-for-dev --version
 
 # Ping and inspect active token/cache status
-stack-scout ping
+skills-but-for-dev ping
 ```
 
 ---
@@ -110,3 +110,4 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full architectural specifications, ma
 ## 📄 License
 
 Apache-2.0
+

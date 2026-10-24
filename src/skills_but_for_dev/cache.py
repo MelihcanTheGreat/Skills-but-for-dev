@@ -1,4 +1,4 @@
-"""Asynchronous SQLite cache with WAL mode and TTL support."""
+﻿"""Asynchronous SQLite cache with WAL mode and TTL support."""
 
 import asyncio
 import hashlib
@@ -10,7 +10,7 @@ from typing import Any
 
 import aiosqlite
 
-from stack_scout.config import config
+from skills_but_for_dev.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -149,3 +149,4 @@ class CacheManager:
 
 # Global cache instance
 cache = CacheManager()
+

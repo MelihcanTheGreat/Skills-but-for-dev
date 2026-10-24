@@ -1,4 +1,4 @@
-"""Unit tests for cache and configuration."""
+﻿"""Unit tests for cache and configuration."""
 
 import asyncio
 import tempfile
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from stack_scout.cache import CacheManager, make_cache_key
-from stack_scout.models import GitHubRepoCandidate, StarVelocity
+from skills_but_for_dev.cache import CacheManager, make_cache_key
+from skills_but_for_dev.models import GitHubRepoCandidate, StarVelocity
 
 
 @pytest.mark.asyncio
@@ -67,3 +67,4 @@ def test_models_serialization():
     dumped = repo.model_dump()
     assert dumped["name"] == "sample-repo"
     assert dumped["velocity"]["accel"] == 1.25
+

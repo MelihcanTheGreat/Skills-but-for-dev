@@ -58,7 +58,7 @@ class Settings:
     # Cache directory
     cache_dir: Path = field(
         default_factory=lambda: Path(
-            os.getenv("STACK_SCOUT_CACHE_DIR") or user_cache_dir("stack-scout", "stack-scout")
+            os.getenv("SKILLS_BUT_FOR_DEV_CACHE_DIR") or user_cache_dir("skills-but-for-dev", "skills-but-for-dev")
         )
     )
 
@@ -87,8 +87,8 @@ class Settings:
     ttls: TTLSettings = field(default_factory=TTLSettings)
 
     def __post_init__(self):
-        # Override weights from STACK_SCOUT_WEIGHTS JSON env var if present
-        raw_weights = os.getenv("STACK_SCOUT_WEIGHTS")
+        # Override weights from SKILLS_BUT_FOR_DEV_WEIGHTS JSON env var if present
+        raw_weights = os.getenv("SKILLS_BUT_FOR_DEV_WEIGHTS")
         if raw_weights:
             try:
                 parsed = json.loads(raw_weights)
@@ -100,3 +100,4 @@ class Settings:
 
 
 config = Settings()
+

@@ -1,10 +1,10 @@
-"""Unit tests for scoring engine and anomaly detection rules."""
+﻿"""Unit tests for scoring engine and anomaly detection rules."""
 
 import pytest
 
-from stack_scout.config import config
-from stack_scout.models import GitHubRepoCandidate, StarVelocity
-from stack_scout.scoring import (
+from skills_but_for_dev.config import config
+from skills_but_for_dev.models import GitHubRepoCandidate, StarVelocity
+from skills_but_for_dev.scoring import (
     calculate_acceleration_score,
     calculate_popularity_score,
     calculate_recency_score,
@@ -110,3 +110,4 @@ def test_stage2_finalists_reranking():
     # cand1 combined: 0.85 * 0.80 + 0.15 * 0.20 = 0.68 + 0.03 = 0.71
     # cand2 combined: 0.85 * 0.75 + 0.15 * 0.95 = 0.6375 + 0.1425 = 0.78
     assert re_ranked[0].full_name == "b/finalist2"
+

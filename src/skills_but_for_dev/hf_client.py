@@ -1,4 +1,4 @@
-"""Hugging Face Hub client with VRAM estimation, model and Space search."""
+﻿"""Hugging Face Hub client with VRAM estimation, model and Space search."""
 
 import asyncio
 import datetime
@@ -8,15 +8,15 @@ import re
 
 from huggingface_hub import HfApi
 
-from stack_scout.cache import cache, make_cache_key
-from stack_scout.config import config
-from stack_scout.licenses import classify_license
-from stack_scout.models import (
+from skills_but_for_dev.cache import cache, make_cache_key
+from skills_but_for_dev.config import config
+from skills_but_for_dev.licenses import classify_license
+from skills_but_for_dev.models import (
     HFModelCandidate,
     HFSpaceCandidate,
     VramEstimate,
 )
-from stack_scout.scoring import calculate_license_penalty
+from skills_but_for_dev.scoring import calculate_license_penalty
 
 logger = logging.getLogger(__name__)
 
@@ -299,3 +299,4 @@ class HFClient:
 
 
 hf_client = HFClient()
+

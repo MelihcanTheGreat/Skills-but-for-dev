@@ -1,7 +1,7 @@
-"""SPDX and Hugging Face license classification."""
+﻿"""SPDX and Hugging Face license classification."""
 
 
-from stack_scout.models import LicenseClass
+from skills_but_for_dev.models import LicenseClass
 
 PERMISSIVE_SPDX = {
     "mit",
@@ -90,3 +90,4 @@ def classify_license(spdx_or_name: str | None) -> LicenseClass:
 def is_commercially_viable(license_class: LicenseClass) -> bool:
     """Check if the license class is unconditionally safe for commercial use."""
     return license_class in ("permissive", "weak_copyleft")
+

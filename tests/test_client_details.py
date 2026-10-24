@@ -1,12 +1,12 @@
-"""Unit tests for repository details and rate limit error tracking."""
+﻿"""Unit tests for repository details and rate limit error tracking."""
 
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
 
-from stack_scout.github_client import GitHubClient
-from stack_scout.ratelimit import GitHubRateLimiter
+from skills_but_for_dev.github_client import GitHubClient
+from skills_but_for_dev.ratelimit import GitHubRateLimiter
 
 
 @pytest.mark.asyncio
@@ -56,3 +56,4 @@ def test_rate_limiter_search_error_tracking():
     resp_200.headers = {"x-ratelimit-remaining": "30"}
     limiter.update_from_headers(resp_200, is_search=True)
     assert limiter.last_search_error is None
+

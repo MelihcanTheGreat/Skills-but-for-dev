@@ -1,4 +1,4 @@
-"""Rate limit tracking and throttling for GitHub and external APIs."""
+﻿"""Rate limit tracking and throttling for GitHub and external APIs."""
 
 import asyncio
 import logging
@@ -29,7 +29,7 @@ class GitHubRateLimiter:
 
     async def acquire_search_slot(self) -> None:
         """Throttle requests to stay within safe search limit (25/min if authenticated, 8/min if unauthenticated)."""
-        from stack_scout.config import config
+        from skills_but_for_dev.config import config
 
         max_allowed = 25 if config.github_token else 8
         async with self.search_lock:
@@ -98,3 +98,4 @@ class GitHubRateLimiter:
 
 
 rate_limiter = GitHubRateLimiter()
+

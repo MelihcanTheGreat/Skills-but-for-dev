@@ -1,9 +1,9 @@
-"""Scoring engine with conservative priors and two-stage ranking."""
+﻿"""Scoring engine with conservative priors and two-stage ranking."""
 
 import math
 
-from stack_scout.config import config
-from stack_scout.models import (
+from skills_but_for_dev.config import config
+from skills_but_for_dev.models import (
     ConfidenceLevel,
     GitHubRepoCandidate,
     RepoScoreBreakdown,
@@ -163,3 +163,4 @@ def score_stage2_finalists(
             cand.score_breakdown.maintenance = round(m_score, 3)
 
     return sorted(finalists, key=lambda c: c.score, reverse=True)
+

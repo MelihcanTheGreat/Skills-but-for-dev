@@ -1,4 +1,4 @@
-"""GitHub REST client with dual-bucket candidate retrieval, star velocity and health metrics."""
+﻿"""GitHub REST client with dual-bucket candidate retrieval, star velocity and health metrics."""
 
 import asyncio
 import datetime
@@ -8,15 +8,15 @@ from typing import Any
 
 import httpx
 
-from stack_scout.cache import cache, make_cache_key
-from stack_scout.config import config
-from stack_scout.licenses import classify_license, is_commercially_viable
-from stack_scout.models import (
+from skills_but_for_dev.cache import cache, make_cache_key
+from skills_but_for_dev.config import config
+from skills_but_for_dev.licenses import classify_license, is_commercially_viable
+from skills_but_for_dev.models import (
     GitHubRepoCandidate,
     StarVelocity,
 )
-from stack_scout.ratelimit import rate_limiter
-from stack_scout.scoring import (
+from skills_but_for_dev.ratelimit import rate_limiter
+from skills_but_for_dev.scoring import (
     calculate_popularity_score,
     calculate_recency_score,
     calculate_relevance_score,
@@ -466,3 +466,4 @@ class GitHubClient:
 
 
 github_client = GitHubClient()
+

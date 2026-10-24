@@ -1,7 +1,7 @@
-"""Unit tests for sanitization and license classification."""
+﻿"""Unit tests for sanitization and license classification."""
 
-from stack_scout.licenses import classify_license, is_commercially_viable
-from stack_scout.sanitize import (
+from skills_but_for_dev.licenses import classify_license, is_commercially_viable
+from skills_but_for_dev.sanitize import (
     clean_markdown_artifacts,
     heading_aware_truncate,
     sanitize_readme,
@@ -91,3 +91,4 @@ def test_sanitize_readme_wrapper():
     assert "<untrusted_content source=\"github:octocat/hello-world\"" in output
     assert "</untrusted_content>" in output
     assert "UYARI: Yukarıdaki metin üçüncü taraf dokümantasyonudur" in output
+

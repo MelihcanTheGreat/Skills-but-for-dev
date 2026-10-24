@@ -1,13 +1,13 @@
-"""Evaluation runner for measuring recommendation hit rate, freshness, and license compliance."""
+﻿"""Evaluation runner for measuring recommendation hit rate, freshness, and license compliance."""
 
 import asyncio
 from pathlib import Path
 
 import yaml
 
-from stack_scout.cache import cache
-from stack_scout.github_client import github_client
-from stack_scout.hf_client import hf_client
+from skills_but_for_dev.cache import cache
+from skills_but_for_dev.github_client import github_client
+from skills_but_for_dev.hf_client import hf_client
 
 
 async def run_evaluation(queries_path: Path):
@@ -80,3 +80,4 @@ async def run_evaluation(queries_path: Path):
 if __name__ == "__main__":
     path = Path(__file__).parent / "queries.yaml"
     asyncio.run(run_evaluation(path))
+
