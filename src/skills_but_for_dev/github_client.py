@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from skills_but_for_dev import __version__
 from skills_but_for_dev.cache import cache, make_cache_key
 from skills_but_for_dev.config import config
 from skills_but_for_dev.licenses import classify_license, is_commercially_viable
@@ -34,7 +35,7 @@ def _get_headers() -> dict[str, str]:
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "skills-but-for-dev/0.1.0",
+        "User-Agent": f"skills-but-for-dev/{__version__}",
     }
     if config.github_token:
         headers["Authorization"] = f"Bearer {config.github_token}"

@@ -1,9 +1,9 @@
 """Evaluation runner for benchmarking accuracy, latency, cache efficiency, and enrichment."""
 
 import asyncio
-from pathlib import Path
 import sys
 import time
+from pathlib import Path
 
 import yaml
 

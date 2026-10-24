@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
+from skills_but_for_dev import __version__
 from skills_but_for_dev.server import main
 
 
@@ -14,7 +15,7 @@ def test_cli_version(capsys):
             main()
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert "skills-but-for-dev 0.1.0" in captured.out
+        assert f"skills-but-for-dev {__version__}" in captured.out
 
 
 def test_cli_help(capsys):
@@ -32,5 +33,5 @@ def test_cli_ping(capsys):
             main()
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert "skills-but-for-dev v0.1.0 is active." in captured.out
+        assert f"skills-but-for-dev v{__version__} is active." in captured.out
 

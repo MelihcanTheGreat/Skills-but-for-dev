@@ -168,7 +168,7 @@ async def get_readme(
                 ]
                 for cdn_url in cdn_urls:
                     try:
-                        resp = await client.get(cdn_url, headers={"User-Agent": "skills-but-for-dev/0.1.0"})
+                        resp = await client.get(cdn_url, headers={"User-Agent": f"skills-but-for-dev/{__version__}"})
                         if resp.status_code == 200 and resp.text.strip():
                             raw_text = resp.text
                             break
@@ -177,7 +177,7 @@ async def get_readme(
 
                 # 2. Fallback to GitHub REST API if CDN misses
                 if not raw_text:
-                    headers = {"Accept": "application/vnd.github.raw+json", "User-Agent": "skills-but-for-dev/0.1.0"}
+                    headers = {"Accept": "application/vnd.github.raw+json", "User-Agent": f"skills-but-for-dev/{__version__}"}
                     if config.github_token:
                         headers["Authorization"] = f"Bearer {config.github_token}"
                     resp = await client.get(f"https://api.github.com/repos/{id}/readme", headers=headers)
