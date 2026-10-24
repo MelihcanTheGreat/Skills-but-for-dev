@@ -1,5 +1,9 @@
 # stack-scout
 
+[![CI](https://github.com/MelihcanTheGreat/Skills-but-for-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/MelihcanTheGreat/Skills-but-for-dev/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Python: 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+
 > **Intelligent technology stack and open-source curator for AI agents (Cursor, Antigravity, and MCP-compatible environments).**
 
 `stack-scout` is a Model Context Protocol (MCP) server and agent skill that recommends **fresh, healthy, and license-compliant** GitHub repositories and Hugging Face models/Spaces before you start writing code.

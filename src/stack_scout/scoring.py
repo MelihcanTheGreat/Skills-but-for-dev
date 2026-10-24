@@ -1,13 +1,12 @@
 """Scoring engine with conservative priors and two-stage ranking."""
 
 import math
-from typing import Dict, List, Optional, Tuple
+
 from stack_scout.config import config
 from stack_scout.models import (
     ConfidenceLevel,
     GitHubRepoCandidate,
     RepoScoreBreakdown,
-    StarVelocity,
 )
 
 
@@ -25,7 +24,7 @@ def calculate_recency_score(days_since_push: int) -> float:
     return math.exp(-days / 90.0)
 
 
-def calculate_velocity_score(v4: Optional[float]) -> Tuple[float, bool]:
+def calculate_velocity_score(v4: float | None) -> tuple[float, bool]:
     """Normalize daily star velocity (v4): 300+ stars/day = 1.0."""
     if v4 is None:
         return config.weights.prior, True
@@ -33,7 +32,7 @@ def calculate_velocity_score(v4: Optional[float]) -> Tuple[float, bool]:
     return min(1.0, max(0.0, val)), False
 
 
-def calculate_acceleration_score(accel: Optional[float]) -> Tuple[float, bool]:
+def calculate_acceleration_score(accel: float | None) -> tuple[float, bool]:
     """Sigmoid on (accel - 1): accel=1 -> 0.5, accel=2 -> ~0.88, accel=0.5 -> ~0.27."""
     if accel is None:
         return config.weights.prior, True
@@ -44,10 +43,10 @@ def calculate_acceleration_score(accel: Optional[float]) -> Tuple[float, bool]:
 
 
 def calculate_relevance_score(
-    query_terms: List[str],
+    query_terms: list[str],
     name: str,
-    description: Optional[str],
-    topics: List[str],
+    description: str | None,
+    topics: list[str],
 ) -> float:
     """BM25-lite keyword relevance score across name, topics, and description."""
     if not query_terms:
@@ -57,7 +56,7 @@ def calculate_relevance_score(
     desc_lower = (description or "").lower()
     topics_lower = [t.lower() for t in topics]
 
-    term_scores: List[float] = []
+    term_scores: list[float] = []
     for term in query_terms:
         t = term.lower()
         score = 0.0
@@ -91,11 +90,11 @@ def calculate_license_penalty(license_class: str, commercial_use: bool) -> float
 
 def score_stage1(
     candidate: GitHubRepoCandidate,
-    query_terms: List[str],
+    query_terms: list[str],
     commercial_use: bool = False,
-) -> Tuple[float, RepoScoreBreakdown, ConfidenceLevel]:
+) -> tuple[float, RepoScoreBreakdown, ConfidenceLevel]:
     """Compute Stage 1 candidate score across the 12 shortlisted candidates."""
-    priors_used: List[str] = []
+    priors_used: list[str] = []
 
     # 1. Popularity
     s_pop = calculate_popularity_score(candidate.stars)
@@ -146,8 +145,8 @@ def score_stage1(
 
 
 def score_stage2_finalists(
-    finalists: List[GitHubRepoCandidate],
-) -> List[GitHubRepoCandidate]:
+    finalists: list[GitHubRepoCandidate],
+) -> list[GitHubRepoCandidate]:
     """Re-rank the top 3 finalists incorporating maintenance scores."""
     w = config.weights
     for cand in finalists:

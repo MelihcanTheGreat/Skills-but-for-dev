@@ -5,12 +5,12 @@ import datetime
 import logging
 import math
 import re
-from typing import Any, Dict, List, Optional, Tuple
+
 from huggingface_hub import HfApi
 
 from stack_scout.cache import cache, make_cache_key
 from stack_scout.config import config
-from stack_scout.licenses import classify_license, is_commercially_viable
+from stack_scout.licenses import classify_license
 from stack_scout.models import (
     HFModelCandidate,
     HFSpaceCandidate,
@@ -21,12 +21,12 @@ from stack_scout.scoring import calculate_license_penalty
 logger = logging.getLogger(__name__)
 
 
-def _days_since(dt: Optional[datetime.datetime]) -> int:
+def _days_since(dt: datetime.datetime | None) -> int:
     if not dt:
         return 9999
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=datetime.timezone.utc)
+        dt = dt.replace(tzinfo=datetime.UTC)
     return max(0, (now - dt).days)
 
 
@@ -68,7 +68,7 @@ class HFClient:
             # Strategy 2: GGUF Quantization variants (do NOT sum them together!)
             gguf_files = [f for f in file_names if f.lower().endswith(".gguf")]
             if gguf_files:
-                variants: Dict[str, float] = {}
+                variants: dict[str, float] = {}
                 # Match standard quantization patterns like Q4_K_M, Q5_K_M, Q8_0, etc.
                 quant_re = re.compile(r"([qQ]\d+_[a-zA-Z0-9_]+|[fF]16|[fF]32)")
                 for gf in gguf_files:
@@ -155,11 +155,11 @@ class HFClient:
     async def search_models(
         self,
         query: str,
-        task: Optional[str] = None,
-        max_vram_gb: Optional[float] = None,
+        task: str | None = None,
+        max_vram_gb: float | None = None,
         commercial_use: bool = False,
         limit: int = 8,
-    ) -> List[HFModelCandidate]:
+    ) -> list[HFModelCandidate]:
         """Search Hugging Face models by keyword and task with VRAM calculation and scoring."""
         cache_key = make_cache_key(
             "hf_search_models", query=query, task=task, commercial=commercial_use
@@ -254,7 +254,7 @@ class HFClient:
         for c, vram in zip(eval_pool, vrams):
             c.vram = vram
 
-        filtered: List[HFModelCandidate] = []
+        filtered: list[HFModelCandidate] = []
         for c in eval_pool:
             if max_vram_gb is not None and c.vram and c.vram.min_gb is not None:
                 if c.vram.min_gb > max_vram_gb:
@@ -265,7 +265,7 @@ class HFClient:
 
         return filtered
 
-    async def search_spaces(self, query: str, limit: int = 5) -> List[HFSpaceCandidate]:
+    async def search_spaces(self, query: str, limit: int = 5) -> list[HFSpaceCandidate]:
         """Search Hugging Face Spaces for running live demonstrations."""
         cache_key = make_cache_key("hf_search_spaces", query=query)
         cached = await cache.get(cache_key)

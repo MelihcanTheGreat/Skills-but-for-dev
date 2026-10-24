@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import time
-from typing import Optional
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -19,13 +19,13 @@ class GitHubRateLimiter:
         self.search_lock = asyncio.Lock()
 
         # Tracked headers
-        self.search_remaining: Optional[int] = None
-        self.search_reset_at: Optional[int] = None
+        self.search_remaining: int | None = None
+        self.search_reset_at: int | None = None
 
-        self.core_remaining: Optional[int] = None
-        self.core_reset_at: Optional[int] = None
-        self.last_search_error: Optional[str] = None
-        self.last_core_error: Optional[str] = None
+        self.core_remaining: int | None = None
+        self.core_reset_at: int | None = None
+        self.last_search_error: str | None = None
+        self.last_core_error: str | None = None
 
     async def acquire_search_slot(self) -> None:
         """Throttle requests to stay within safe search limit (25/min if authenticated, 8/min if unauthenticated)."""

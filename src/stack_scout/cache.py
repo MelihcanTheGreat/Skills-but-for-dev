@@ -6,7 +6,8 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
+
 import aiosqlite
 
 from stack_scout.config import config
@@ -31,7 +32,7 @@ class CacheManager:
     def __init__(self, db_dir: Path | None = None):
         self.db_dir = db_dir or config.cache_dir
         self.db_path = self.db_dir / "cache.db"
-        self._db: Optional[aiosqlite.Connection] = None
+        self._db: aiosqlite.Connection | None = None
         self._lock = asyncio.Lock()
         self._initialized = False
 
@@ -83,7 +84,7 @@ class CacheManager:
                 self._db = None
                 self._initialized = False
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Fetch unexpired cached item. Returns None on cache miss, expiry, or error."""
         async with self._lock:
             if not self._initialized or not self._db:

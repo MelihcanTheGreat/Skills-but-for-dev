@@ -1,6 +1,7 @@
 """Data models and schemas for stack-scout."""
 
-from typing import Dict, List, Literal, Optional
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 LicenseClass = Literal[
@@ -16,10 +17,10 @@ ConfidenceLevel = Literal["high", "low"]
 
 
 class StarVelocity(BaseModel):
-    v4: Optional[float] = None  # Daily star avg over last 4 weeks (28 days)
-    v12: Optional[float] = None  # Daily star avg over last 12 weeks (84 days)
-    accel: Optional[float] = None  # v4 / v12 (acceleration factor, >1 accelerating)
-    rel_v4: Optional[float] = None  # v4 / total_stars (relative growth)
+    v4: float | None = None  # Daily star avg over last 4 weeks (28 days)
+    v12: float | None = None  # Daily star avg over last 12 weeks (84 days)
+    accel: float | None = None  # v4 / v12 (acceleration factor, >1 accelerating)
+    rel_v4: float | None = None  # v4 / total_stars (relative growth)
     source: Literal["history", "unavailable"] = "history"
 
 
@@ -29,8 +30,8 @@ class RepoScoreBreakdown(BaseModel):
     acceleration: float
     recency: float
     relevance: float
-    maintenance: Optional[float] = None
-    priors_used: List[str] = Field(default_factory=list)
+    maintenance: float | None = None
+    priors_used: list[str] = Field(default_factory=list)
 
 
 class GitHubRepoCandidate(BaseModel):
@@ -38,21 +39,21 @@ class GitHubRepoCandidate(BaseModel):
     name: str
     owner: str
     url: str
-    description: Optional[str] = None
+    description: str | None = None
     stars: int
     pushed_days_ago: int
     created_days_ago: int
-    license_spdx: Optional[str] = None
+    license_spdx: str | None = None
     license_class: LicenseClass = "unknown"
-    topics: List[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
     bucket: Literal["A", "B", "C"]
-    velocity: Optional[StarVelocity] = None
+    velocity: StarVelocity | None = None
     score: float = 0.0
-    score_breakdown: Optional[RepoScoreBreakdown] = None
+    score_breakdown: RepoScoreBreakdown | None = None
     confidence: ConfidenceLevel = "high"
-    anomaly_warning: Optional[str] = None  # e.g., "dormant_spike"
+    anomaly_warning: str | None = None  # e.g., "dormant_spike"
     is_finalist: bool = False
-    maintenance_score: Optional[float] = None
+    maintenance_score: float | None = None
 
 
 class VramEstimate(BaseModel):
@@ -63,29 +64,29 @@ class VramEstimate(BaseModel):
         "diffusers",
         "unknown",
     ]
-    min_gb: Optional[float] = None
-    variants: Optional[Dict[str, float]] = None  # e.g., {"Q4_K_M": 4.9, "Q8_0": 8.5}
+    min_gb: float | None = None
+    variants: dict[str, float] | None = None  # e.g., {"Q4_K_M": 4.9, "Q8_0": 8.5}
     note: str = "Ağırlık belleği alt sınırı; KV-cache, aktivasyon ve girdi uzunluğu hariçtir."
 
 
 class HFModelCandidate(BaseModel):
     id: str
     url: str
-    task: Optional[str] = None
+    task: str | None = None
     downloads_30d: int = 0
     likes: int = 0
-    trending_score: Optional[float] = None
+    trending_score: float | None = None
     last_modified_days_ago: int = 0
-    license: Optional[str] = None
+    license: str | None = None
     license_class: LicenseClass = "unknown"
-    vram: Optional[VramEstimate] = None
+    vram: VramEstimate | None = None
     score: float = 0.0
 
 
 class HFSpaceCandidate(BaseModel):
     id: str
     url: str
-    sdk: Optional[str] = None
+    sdk: str | None = None
     likes: int = 0
     last_modified_days_ago: int = 0
     running: bool = True

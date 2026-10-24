@@ -3,10 +3,10 @@
 import asyncio
 import tempfile
 from pathlib import Path
+
 import pytest
 
 from stack_scout.cache import CacheManager, make_cache_key
-from stack_scout.config import config
 from stack_scout.models import GitHubRepoCandidate, StarVelocity
 
 

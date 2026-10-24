@@ -2,19 +2,21 @@
 
 import asyncio
 from pathlib import Path
+
 import yaml
+
+from stack_scout.cache import cache
 from stack_scout.github_client import github_client
 from stack_scout.hf_client import hf_client
-from stack_scout.cache import cache
 
 
 async def run_evaluation(queries_path: Path):
-    with open(queries_path, "r", encoding="utf-8") as f:
+    with open(queries_path, encoding="utf-8") as f:
         cases = yaml.safe_load(f)
 
-    print(f"\n=======================================================")
-    print(f"       STACK-SCOUT EVALUATION RUNNER (EVALS)           ")
-    print(f"=======================================================\n")
+    print("\n=======================================================")
+    print("       STACK-SCOUT EVALUATION RUNNER (EVALS)           ")
+    print("=======================================================\n")
 
     total_layers = 0
     total_hits = 0
@@ -67,9 +69,9 @@ async def run_evaluation(queries_path: Path):
         print()
 
     hit_rate = (total_hits / max(1, total_layers)) * 100
-    print(f"-------------------------------------------------------")
+    print("-------------------------------------------------------")
     print(f"SUMMARY: Total Layers: {total_layers} | Hits@5: {total_hits} | Hit Rate: {hit_rate:.1f}%")
-    print(f"=======================================================\n")
+    print("=======================================================\n")
 
     await github_client.close()
     await cache.close()

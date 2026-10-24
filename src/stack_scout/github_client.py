@@ -4,7 +4,8 @@ import asyncio
 import datetime
 import logging
 import statistics
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import httpx
 
 from stack_scout.cache import cache, make_cache_key
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 BASE_URL = "https://api.github.com"
 
 
-def _get_headers() -> Dict[str, str]:
+def _get_headers() -> dict[str, str]:
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -38,12 +39,12 @@ def _get_headers() -> Dict[str, str]:
     return headers
 
 
-def _days_since(iso_str: Optional[str]) -> int:
+def _days_since(iso_str: str | None) -> int:
     if not iso_str:
         return 9999
     try:
         dt = datetime.datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         return max(0, (now - dt).days)
     except Exception:
         return 9999
@@ -53,7 +54,7 @@ class GitHubClient:
     """Handles GitHub API calls with caching, rate limit compliance, and dual-bucket search."""
 
     def __init__(self):
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._http_client: httpx.AsyncClient | None = None
 
     @property
     def http_client(self) -> httpx.AsyncClient:
@@ -71,7 +72,7 @@ class GitHubClient:
         if self._http_client and not self._http_client.is_closed:
             await self._http_client.aclose()
 
-    async def _search_raw(self, query: str, sort: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def _search_raw(self, query: str, sort: str | None = None) -> list[dict[str, Any]]:
         """Execute raw GitHub repository search with rate limit protection and caching."""
         cache_key = make_cache_key("github_search", query=query, sort=sort)
         cached = await cache.get(cache_key)
@@ -99,7 +100,7 @@ class GitHubClient:
 
     async def get_star_velocity(
         self, owner: str, repo: str, stars: int, created_days_ago: int
-    ) -> Tuple[StarVelocity, Optional[str]]:
+    ) -> tuple[StarVelocity, str | None]:
         """Fetch weekly star history via GET /repos/{owner}/{repo}/stargazers/history and check anomaly."""
         cache_key = make_cache_key("star_velocity", owner=owner, repo=repo)
         cached = await cache.get(cache_key)
@@ -174,14 +175,14 @@ class GitHubClient:
             logger.warning("Error fetching star velocity for %s/%s: %s", owner, repo, e)
             return StarVelocity(source="unavailable"), None
 
-    async def get_repo_health(self, owner: str, repo: str) -> Optional[float]:
+    async def get_repo_health(self, owner: str, repo: str) -> float | None:
         """Fetch releases, contributors, and issue responsiveness to compute maintenance score (0.0 - 1.0)."""
         cache_key = make_cache_key("repo_health", owner=owner, repo=repo)
         cached = await cache.get(cache_key)
         if cached is not None:
             return cached.get("maintenance_score")
 
-        signals: List[float] = []
+        signals: list[float] = []
 
         if not rate_limiter.can_make_core_request(min_remaining=3):
             logger.info("Preserving GitHub Core API limit (remaining <= 3), assigning prior maintenance score.")
@@ -236,7 +237,7 @@ class GitHubClient:
                 rate_limiter.update_from_headers(issue_resp, is_search=False)
                 items = issue_resp.json()
                 pure_issues = [it for it in items if isinstance(it, dict) and "pull_request" not in it]
-                now = datetime.datetime.now(datetime.timezone.utc)
+                now = datetime.datetime.now(datetime.UTC)
                 eligible_issues = []
                 for it in pure_issues:
                     c_at = it.get("created_at")
@@ -277,7 +278,7 @@ class GitHubClient:
             logger.warning("Error computing repo health for %s/%s: %s", owner, repo, e)
             return None
 
-    async def get_repo_details(self, owner: str, repo: str) -> Optional[Dict[str, Any]]:
+    async def get_repo_details(self, owner: str, repo: str) -> dict[str, Any] | None:
         """Fetch general repository metadata from GET /repos/{owner}/{repo} with caching."""
         cache_key = make_cache_key("repo_details", owner=owner, repo=repo)
         cached = await cache.get(cache_key)
@@ -319,7 +320,7 @@ class GitHubClient:
             logger.warning("Error fetching repo details for %s/%s: %s", owner, repo, e)
             return None
 
-    def _parse_raw_candidate(self, item: Dict[str, Any], bucket: str) -> GitHubRepoCandidate:
+    def _parse_raw_candidate(self, item: dict[str, Any], bucket: str) -> GitHubRepoCandidate:
         full_name = item.get("full_name", "")
         parts = full_name.split("/")
         owner = parts[0] if parts else ""
@@ -350,13 +351,13 @@ class GitHubClient:
     async def search_repositories(
         self,
         query: str,
-        topics: Optional[List[str]] = None,
-        language: Optional[str] = None,
+        topics: list[str] | None = None,
+        language: str | None = None,
         commercial_use: bool = False,
         limit: int = 8,
-    ) -> List[GitHubRepoCandidate]:
+    ) -> list[GitHubRepoCandidate]:
         """Search repositories using dual-bucket logic, pre-scoring quotas, star velocity, and health ranking."""
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         date_a = (now - datetime.timedelta(days=config.bucket_a_pushed_days)).strftime("%Y-%m-%d")
         date_b = (now - datetime.timedelta(days=config.bucket_b_pushed_days)).strftime("%Y-%m-%d")
         date_c = (now - datetime.timedelta(days=config.bucket_c_created_days)).strftime("%Y-%m-%d")
@@ -381,7 +382,7 @@ class GitHubClient:
         candidates_b = [self._parse_raw_candidate(it, "B") for it in items_b]
 
         # 3. Optional Bucket C (Backup if sparse)
-        candidates_c: List[GitHubRepoCandidate] = []
+        candidates_c: list[GitHubRepoCandidate] = []
         if len(candidates_a) + len(candidates_b) < config.min_candidates_before_c:
             q_c = f"{base_query} created:>{date_c} stars:>30 fork:false archived:false"
             items_c = await self._search_raw(q_c, sort=None)

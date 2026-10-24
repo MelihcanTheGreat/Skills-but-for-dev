@@ -1,6 +1,6 @@
 """SPDX and Hugging Face license classification."""
 
-from typing import Optional
+
 from stack_scout.models import LicenseClass
 
 PERMISSIVE_SPDX = {
@@ -55,7 +55,7 @@ CUSTOM_AI_LICENSES = [
 ]
 
 
-def classify_license(spdx_or_name: Optional[str]) -> LicenseClass:
+def classify_license(spdx_or_name: str | None) -> LicenseClass:
     """Classify a license SPDX string or raw license name into standardized LicenseClass."""
     if not spdx_or_name or spdx_or_name.strip().upper() in ("NOASSERTION", "NONE", ""):
         return "unknown"

@@ -1,6 +1,7 @@
 """Unit tests for scoring engine and anomaly detection rules."""
 
 import pytest
+
 from stack_scout.config import config
 from stack_scout.models import GitHubRepoCandidate, StarVelocity
 from stack_scout.scoring import (

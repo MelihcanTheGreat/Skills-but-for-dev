@@ -4,9 +4,9 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict
-from platformdirs import user_cache_dir
+
 from dotenv import load_dotenv
+from platformdirs import user_cache_dir
 
 load_dotenv()
 

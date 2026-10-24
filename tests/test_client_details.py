@@ -1,8 +1,9 @@
 """Unit tests for repository details and rate limit error tracking."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
 import httpx
+import pytest
 
 from stack_scout.github_client import GitHubClient
 from stack_scout.ratelimit import GitHubRateLimiter

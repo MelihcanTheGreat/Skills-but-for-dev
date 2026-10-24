@@ -2,7 +2,6 @@
 
 import datetime
 import re
-from typing import List, Tuple
 
 # Regex patterns for unsafe elements
 YAML_FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -55,12 +54,12 @@ def clean_markdown_artifacts(text: str) -> str:
     return text.strip()
 
 
-def _split_into_sections(text: str) -> List[Tuple[str, str]]:
+def _split_into_sections(text: str) -> list[tuple[str, str]]:
     """Split markdown text into (heading_title, section_body) tuples."""
     lines = text.splitlines(keepends=True)
-    sections: List[Tuple[str, List[str]]] = []
+    sections: list[tuple[str, list[str]]] = []
     current_title = "intro"
-    current_lines: List[str] = []
+    current_lines: list[str] = []
 
     heading_re = re.compile(r"^#{1,3}\s+(.+)$")
 
@@ -90,8 +89,8 @@ def heading_aware_truncate(text: str, max_chars: int = 8000) -> str:
         return text[:max_chars]
 
     # Partition sections into priority and regular
-    priority_sections: List[Tuple[str, str]] = []
-    regular_sections: List[Tuple[str, str]] = []
+    priority_sections: list[tuple[str, str]] = []
+    regular_sections: list[tuple[str, str]] = []
 
     for title, content in sections:
         lower_title = title.lower()
@@ -100,7 +99,7 @@ def heading_aware_truncate(text: str, max_chars: int = 8000) -> str:
         else:
             regular_sections.append((title, content))
 
-    selected_content: List[str] = []
+    selected_content: list[str] = []
     current_length = 0
 
     # First add priority sections
@@ -132,7 +131,7 @@ def sanitize_readme(raw_content: str, source: str, target_id: str, max_chars: in
     """Sanitize and wrap untrusted repository content with protection tags."""
     cleaned = clean_markdown_artifacts(raw_content)
     truncated = heading_aware_truncate(cleaned, max_chars=max_chars)
-    iso_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    iso_time = datetime.datetime.now(datetime.UTC).isoformat()
 
     return (
         f'<untrusted_content source="{source}:{target_id}" fetched_at="{iso_time}">\n'

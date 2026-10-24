@@ -1,7 +1,7 @@
 """FastMCP Server entry point for stack-scout."""
 
-import sys
 from fastmcp import FastMCP
+
 from stack_scout import __version__
 from stack_scout.config import config
 
@@ -146,6 +146,7 @@ async def get_readme(
         max_chars: Maximum characters to return (default: 8000).
     """
     import httpx
+
     from stack_scout.cache import cache, make_cache_key
     from stack_scout.config import config
     from stack_scout.sanitize import sanitize_readme
