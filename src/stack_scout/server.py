@@ -55,6 +55,10 @@ async def search_github_repos(
         commercial_use=commercial_use,
         limit=limit,
     )
+    if not candidates:
+        from stack_scout.ratelimit import rate_limiter
+        if rate_limiter.last_search_error:
+            return [{"error": rate_limiter.last_search_error, "query": query}]
     return [c.model_dump() for c in candidates]
 
 
@@ -153,14 +157,33 @@ async def get_readme(
 
     raw_text = ""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             if source == "github":
-                headers = {"Accept": "application/vnd.github.raw+json", "User-Agent": "stack-scout/0.1.0"}
-                if config.github_token:
-                    headers["Authorization"] = f"Bearer {config.github_token}"
-                resp = await client.get(f"https://api.github.com/repos/{id}/readme", headers=headers)
-                if resp.status_code == 200:
-                    raw_text = resp.text
+                # 1. Try raw CDN first (avoids consuming GitHub API Core rate limits)
+                cdn_urls = [
+                    f"https://raw.githubusercontent.com/{id}/HEAD/README.md",
+                    f"https://raw.githubusercontent.com/{id}/main/README.md",
+                    f"https://raw.githubusercontent.com/{id}/master/README.md",
+                ]
+                for cdn_url in cdn_urls:
+                    try:
+                        resp = await client.get(cdn_url, headers={"User-Agent": "stack-scout/0.1.0"})
+                        if resp.status_code == 200 and resp.text.strip():
+                            raw_text = resp.text
+                            break
+                    except Exception:
+                        pass
+
+                # 2. Fallback to GitHub REST API if CDN misses
+                if not raw_text:
+                    headers = {"Accept": "application/vnd.github.raw+json", "User-Agent": "stack-scout/0.1.0"}
+                    if config.github_token:
+                        headers["Authorization"] = f"Bearer {config.github_token}"
+                    resp = await client.get(f"https://api.github.com/repos/{id}/readme", headers=headers)
+                    if resp.status_code == 200:
+                        raw_text = resp.text
+                    elif resp.status_code in (403, 429):
+                        return f"GitHub API rate limit exceeded when fetching README for {id}. Set GITHUB_TOKEN in environment."
             elif source == "hf_model":
                 resp = await client.get(f"https://huggingface.co/{id}/raw/main/README.md")
                 if resp.status_code == 200:
@@ -191,27 +214,55 @@ async def compare_candidates(ids: list[str]) -> dict:
 
     for item_id in ids:
         if "/" in item_id:
-            # Try fetching star velocity
             owner, repo = item_id.split("/", 1)
-            vel, anomaly = await github_client.get_star_velocity(owner, repo, 0, 0)
-            if vel.source != "unavailable":
-                m_score = await github_client.get_repo_health(owner, repo)
-                github_items.append({
-                    "id": item_id,
-                    "velocity_v4": vel.v4,
-                    "acceleration": vel.accel,
-                    "anomaly_warning": anomaly,
-                    "maintenance_score": m_score,
-                })
+            # 1. Try GitHub repository first
+            details = await github_client.get_repo_details(owner, repo)
+            if details:
+                if details.get("is_rate_limited"):
+                    github_items.append({
+                        "id": item_id,
+                        "error": details.get("error"),
+                    })
+                else:
+                    stars = details.get("stars", 0)
+                    created_days = details.get("created_days_ago", 0)
+                    vel, anomaly = await github_client.get_star_velocity(owner, repo, stars, created_days)
+                    m_score = await github_client.get_repo_health(owner, repo)
+                    github_items.append({
+                        "id": item_id,
+                        "stars": stars,
+                        "forks": details.get("forks", 0),
+                        "open_issues": details.get("open_issues", 0),
+                        "license": details.get("license_class", "unknown"),
+                        "license_spdx": details.get("license_spdx"),
+                        "language": details.get("language"),
+                        "description": details.get("description"),
+                        "velocity_v4": vel.v4,
+                        "acceleration": vel.accel,
+                        "anomaly_warning": anomaly,
+                        "maintenance_score": m_score,
+                        "last_pushed_days_ago": details.get("pushed_days_ago"),
+                    })
             else:
-                # Treat as HF model
-                vram = await hf_client.calculate_vram_estimate(item_id)
-                hf_items.append({
-                    "id": item_id,
-                    "vram_min_gb": vram.min_gb,
-                    "vram_variants": vram.variants,
-                    "vram_method": vram.method,
-                })
+                # 2. Check Hugging Face Hub
+                try:
+                    info = hf_client.api.model_info(item_id)
+                    vram = await hf_client.calculate_vram_estimate(item_id)
+                    hf_items.append({
+                        "id": item_id,
+                        "pipeline_tag": getattr(info, "pipeline_tag", None),
+                        "downloads_30d": getattr(info, "downloads", 0) or 0,
+                        "likes": getattr(info, "likes", 0) or 0,
+                        "license": getattr(info, "cardData", {}).get("license") if hasattr(info, "cardData") and info.cardData else None,
+                        "vram_min_gb": vram.min_gb,
+                        "vram_variants": vram.variants,
+                        "vram_note": vram.note,
+                    })
+                except Exception:
+                    github_items.append({
+                        "id": item_id,
+                        "error": f"Repository or model '{item_id}' not found on GitHub or Hugging Face.",
+                    })
 
     return {
         "comparison_table": {

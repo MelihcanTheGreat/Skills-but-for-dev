@@ -57,8 +57,14 @@ class GitHubClient:
 
     @property
     def http_client(self) -> httpx.AsyncClient:
-        if self._http_client is None or self._http_client.is_closed:
-            self._http_client = httpx.AsyncClient(timeout=15.0, headers=_get_headers())
+        is_closed = getattr(self._http_client, "is_closed", False)
+        # If is_closed is a mock object (not boolean), treat it as False
+        if not isinstance(is_closed, bool):
+            is_closed = False
+        if self._http_client is None or is_closed:
+            self._http_client = httpx.AsyncClient(
+                timeout=15.0, headers=_get_headers(), follow_redirects=True
+            )
         return self._http_client
 
     async def close(self):
@@ -177,6 +183,10 @@ class GitHubClient:
 
         signals: List[float] = []
 
+        if not rate_limiter.can_make_core_request(min_remaining=3):
+            logger.info("Preserving GitHub Core API limit (remaining <= 3), assigning prior maintenance score.")
+            return None
+
         try:
             # Parallel fetch releases, contributors, and issues
             rel_task = self.http_client.get(
@@ -265,6 +275,48 @@ class GitHubClient:
 
         except Exception as e:
             logger.warning("Error computing repo health for %s/%s: %s", owner, repo, e)
+            return None
+
+    async def get_repo_details(self, owner: str, repo: str) -> Optional[Dict[str, Any]]:
+        """Fetch general repository metadata from GET /repos/{owner}/{repo} with caching."""
+        cache_key = make_cache_key("repo_details", owner=owner, repo=repo)
+        cached = await cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            resp = await self.http_client.get(f"{BASE_URL}/repos/{owner}/{repo}")
+            rate_limiter.update_from_headers(resp, is_search=False)
+            if resp.status_code == 200:
+                data = resp.json()
+                lic_spdx = data.get("license", {}).get("spdx_id") if data.get("license") else None
+                details = {
+                    "owner": owner,
+                    "repo": repo,
+                    "full_name": f"{owner}/{repo}",
+                    "description": data.get("description") or "",
+                    "stars": data.get("stargazers_count", 0),
+                    "forks": data.get("forks_count", 0),
+                    "open_issues": data.get("open_issues_count", 0),
+                    "language": data.get("language"),
+                    "license_spdx": lic_spdx,
+                    "license_class": classify_license(lic_spdx),
+                    "created_at": data.get("created_at"),
+                    "pushed_at": data.get("pushed_at"),
+                    "created_days_ago": _days_since(data.get("created_at")),
+                    "pushed_days_ago": _days_since(data.get("pushed_at")),
+                }
+                await cache.set(cache_key, details, ttl_seconds=config.ttls.repo_health)
+                return details
+            elif resp.status_code in (403, 429):
+                err_msg = rate_limiter.last_core_error or f"GitHub Core API rate limit reached (HTTP {resp.status_code})"
+                logger.warning("GET /repos/%s/%s rate limited: %s", owner, repo, err_msg)
+                return {"error": err_msg, "is_rate_limited": True, "full_name": f"{owner}/{repo}"}
+            else:
+                logger.warning("GET /repos/%s/%s returned %s", owner, repo, resp.status_code)
+                return None
+        except Exception as e:
+            logger.warning("Error fetching repo details for %s/%s: %s", owner, repo, e)
             return None
 
     def _parse_raw_candidate(self, item: Dict[str, Any], bucket: str) -> GitHubRepoCandidate:

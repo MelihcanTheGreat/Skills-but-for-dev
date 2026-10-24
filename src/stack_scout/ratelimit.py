@@ -24,6 +24,8 @@ class GitHubRateLimiter:
 
         self.core_remaining: Optional[int] = None
         self.core_reset_at: Optional[int] = None
+        self.last_search_error: Optional[str] = None
+        self.last_core_error: Optional[str] = None
 
     async def acquire_search_slot(self) -> None:
         """Throttle requests to stay within safe search limit (25/min if authenticated, 8/min if unauthenticated)."""
@@ -68,6 +70,31 @@ class GitHubRateLimiter:
                     self.core_reset_at = rst
         except (ValueError, TypeError):
             pass
+
+        if response.status_code in (403, 429):
+            if is_search:
+                reset_secs = max(0, int((self.search_reset_at or 0) - time.time()))
+                self.last_search_error = (
+                    f"GitHub Search rate limit reached (HTTP {response.status_code}). "
+                    f"Resets in {reset_secs}s. Set GITHUB_TOKEN in environment for 30 req/min limit."
+                )
+            else:
+                reset_secs = max(0, int((self.core_reset_at or 0) - time.time()))
+                self.last_core_error = (
+                    f"GitHub Core API rate limit reached (HTTP {response.status_code}). "
+                    f"Resets in {reset_secs}s. Set GITHUB_TOKEN in environment for 5,000 req/hr limit."
+                )
+        elif response.status_code == 200:
+            if is_search:
+                self.last_search_error = None
+            else:
+                self.last_core_error = None
+
+    def can_make_core_request(self, min_remaining: int = 2) -> bool:
+        """Return False if core remaining quota is critically low to protect rate limits."""
+        if self.core_remaining is not None and self.core_remaining <= min_remaining:
+            return False
+        return True
 
 
 rate_limiter = GitHubRateLimiter()
