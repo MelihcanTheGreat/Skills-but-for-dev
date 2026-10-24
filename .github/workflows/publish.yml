@@ -6,9 +6,33 @@ on:
       - "v*"
 
 jobs:
+  test:
+    name: Run Tests before Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Run Pytest
+        run: pytest -v
+
   release:
     name: Build, Release & Publish
+    needs: test
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/skills-but-for-dev
     permissions:
       contents: write
       id-token: write
@@ -29,14 +53,8 @@ jobs:
       - name: Build Wheel & sdist
         run: python -m build
 
-      - name: Publish to PyPI (if secret configured)
+      - name: Publish to PyPI via Trusted Publishing (OIDC)
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: env.HAVE_TOKEN == 'true'
-        env:
-          HAVE_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-        continue-on-error: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
