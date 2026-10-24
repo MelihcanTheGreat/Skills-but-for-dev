@@ -274,7 +274,29 @@ async def compare_candidates(ids: list[str]) -> dict:
 
 
 def main():
-    """Run MCP server via stdio transport."""
+    """Run MCP server via stdio transport, or provide CLI diagnostics."""
+    import asyncio
+    import sys
+
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1].lower()
+        if cmd in ("--version", "-v"):
+            print(f"stack-scout {__version__}")
+            sys.exit(0)
+        elif cmd in ("--help", "-h"):
+            print(
+                f"stack-scout v{__version__}: Intelligent tech stack & open-source curator for AI agents.\n\n"
+                "Usage:\n"
+                "  stack-scout                   Start MCP server (stdio transport, default)\n"
+                "  stack-scout ping              Check server, token, and cache status\n"
+                "  stack-scout --version         Display version\n"
+                "  stack-scout --help            Display this help message\n"
+            )
+            sys.exit(0)
+        elif cmd == "ping":
+            print(asyncio.run(ping()))
+            sys.exit(0)
+
     mcp.run()
 
 

@@ -37,7 +37,25 @@ When coding assistants (Cursor, Antigravity, Claude Code) are asked to *"Build a
 - Python 3.11+
 - (Optional but recommended) `GITHUB_TOKEN` for higher GitHub API rate limits.
 
-### 2. Configure in Antigravity or Cursor
+### 2. Run with Zero Installation (`uvx`)
+
+You can launch `stack-scout` directly in any MCP-compatible environment without cloning or managing virtual environments:
+
+```json
+{
+  "mcpServers": {
+    "stack-scout": {
+      "command": "uvx",
+      "args": ["stack-scout"],
+      "env": {
+        "GITHUB_TOKEN": "your_github_pat_here"
+      }
+    }
+  }
+}
+```
+
+### 3. Configure in Antigravity or Cursor (Local Development)
 
 #### Antigravity (`mcp_config.json`)
 ```json
@@ -67,6 +85,18 @@ When coding assistants (Cursor, Antigravity, Claude Code) are asked to *"Build a
     }
   }
 }
+```
+
+### 4. CLI Diagnostics
+
+You can inspect server health, token configuration, and cache paths directly from the terminal:
+
+```bash
+# Check version
+stack-scout --version
+
+# Ping and inspect active token/cache status
+stack-scout ping
 ```
 
 ---
