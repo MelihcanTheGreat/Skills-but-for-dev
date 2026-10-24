@@ -55,3 +55,13 @@ def test_normalize_handles_punctuation_and_symbols():
     assert "fastapi" in norm.terms
     assert "postgresql" in norm.terms
     assert "async" in norm.terms
+
+
+def test_normalize_extracts_language():
+    query = "I want a fast python tool to parse pdf invoices"
+    norm = normalize_query(query, max_terms=3)
+    assert norm.detected_language == "python"
+    assert "pdf" in norm.terms
+    assert "invoice" in norm.terms
+    assert "parse" in norm.terms
+

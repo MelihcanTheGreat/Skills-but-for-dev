@@ -96,3 +96,20 @@ async def test_get_repo_downloads_with_prefix_resolution():
         assert downloads == 8000000
 
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_get_repo_downloads_with_known_alias():
+    client = PyPIClient()
+
+    async def mock_get_monthly(pkg_name: str):
+        if pkg_name == "marker-pdf":
+            return 450000
+        return None
+
+    with patch.object(client, "get_monthly_downloads", side_effect=mock_get_monthly):
+        downloads = await client.get_repo_downloads("marker")
+        assert downloads == 450000
+
+    await client.close()
+

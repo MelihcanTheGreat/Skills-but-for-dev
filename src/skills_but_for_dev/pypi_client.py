@@ -12,6 +12,14 @@ logger = logging.getLogger(__name__)
 PYPI_STATS_BASE = "https://pypistats.org/api/packages"
 
 
+KNOWN_PYPI_ALIASES = {
+    "marker": "marker-pdf",
+    "py-pdf": "pypdf",
+    "pyannote-audio": "pyannote.audio",
+    "whisper": "openai-whisper",
+}
+
+
 class PyPIClient:
     """Fetches real-world download metrics from pypistats.org with caching."""
 
@@ -63,13 +71,25 @@ class PyPIClient:
 
     async def get_repo_downloads(self, repo_name: str) -> int | None:
         """Try resolving a repository name to its corresponding PyPI package."""
-        candidates = [repo_name.lower()]
+        lowered = repo_name.lower().strip()
+        candidates: list[str] = []
+
+        if lowered in KNOWN_PYPI_ALIASES:
+            candidates.append(KNOWN_PYPI_ALIASES[lowered])
+        candidates.append(lowered)
 
         # Common package naming conventions: python-xxx -> xxx, xxx-python -> xxx
-        if repo_name.lower().startswith("python-"):
-            candidates.append(repo_name.lower().replace("python-", ""))
-        elif repo_name.lower().endswith("-python"):
-            candidates.append(repo_name.lower().replace("-python", ""))
+        if lowered.startswith("python-"):
+            candidates.append(lowered.replace("python-", ""))
+        elif lowered.endswith("-python"):
+            candidates.append(lowered.replace("-python", ""))
+
+        # Dot and underscore separator variations (e.g. pyannote-audio -> pyannote.audio)
+        if "-" in lowered:
+            candidates.append(lowered.replace("-", "."))
+            candidates.append(lowered.replace("-", "_"))
+        if "_" in lowered:
+            candidates.append(lowered.replace("_", "-"))
 
         for candidate in candidates:
             count = await self.get_monthly_downloads(candidate)

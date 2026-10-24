@@ -1,40 +1,92 @@
-- id: meeting-agent
-  idea: "Toplantıya katılan ve not tutan bir yapay zeka ajanı"
+- id: meeting-assistant
+  idea: "Toplantı seslerini yazıya döken ve konuşmacıları ayrıştıran ajan"
   layers:
     - name: asr
-      query: "faster whisper"
+      query: "faster whisper speech to text"
       hf_task: "automatic-speech-recognition"
-      expect_any: ["whisper", "faster-whisper", "whisperX"]
+      expected_repos:
+        - "SYSTRAN/faster-whisper"
+        - "openai/whisper"
+        - "m-bain/whisperX"
+      expected_hf:
+        - "Systran/faster-whisper-small"
+        - "openai/whisper-small"
     - name: diarization
-      query: "speaker diarization"
+      query: "speaker diarization python"
       hf_task: null
-      expect_any: ["pyannote-audio", "whisperX", "simple-diarizer"]
+      expected_repos:
+        - "pyannote/pyannote-audio"
+        - "m-bain/whisperX"
+        - "modelscope/FunASR"
   constraints:
     commercial_use: true
     max_vram_gb: 12.0
 
-- id: pdf-rag
-  idea: "Şirket PDF'leri üzerinde soru-cevap yapan yerel RAG sistemi"
+- id: local-pdf-rag
+  idea: "Şirket PDF belgelerini okuyup semantik arama yapan yerel RAG"
   layers:
     - name: pdf_parser
-      query: "pdf parser"
+      query: "python pdf parser extraction"
       hf_task: null
-      expect_any: ["pypdf", "pdfplumber", "marker", "pymupdf"]
+      expected_repos:
+        - "py-pdf/pypdf"
+        - "jsvine/pdfplumber"
+        - "pymupdf/PyMuPDF"
+        - "VikParuchuri/marker"
+    - name: embeddings
+      query: "sentence transformers embedding model"
+      hf_task: "feature-extraction"
+      expected_repos:
+        - "UKPLab/sentence-transformers"
+        - "FlagOpen/FlagEmbedding"
+      expected_hf:
+        - "BAAI/bge-small-en-v1.5"
+        - "sentence-transformers/all-MiniLM-L6-v2"
+        - "intfloat/e5-small-v2"
   constraints:
     commercial_use: true
     max_vram_gb: 8.0
 
-- id: natural-language-docs
-  idea: "Doğal dille ve Türkçe aramalarla fatura ve belge okuma"
+- id: natural-language-developer-prompts
+  idea: "Doğal dille ve Türkçe yazılmış geliştirici istekleri"
   layers:
-    - name: invoice_extract
+    - name: nl_invoice_pdf
       query: "I want a fast python tool to parse pdf invoices"
       hf_task: null
-      expect_any: ["pdf", "marker", "pypdf", "invoice", "pdfplumber"]
-    - name: ocr_scanner
-      query: "şirket içi fatura okuyan yerel ocr aracı"
+      expected_repos:
+        - "py-pdf/pypdf"
+        - "jsvine/pdfplumber"
+        - "pymupdf/PyMuPDF"
+        - "VikParuchuri/marker"
+    - name: nl_async_web
+      query: "lightweight asynchronous rest api framework python"
       hf_task: null
-      expect_any: ["tesseract", "surya", "easyocr", "paddleocr", "ocr"]
+      expected_repos:
+        - "tiangolo/fastapi"
+        - "litestar-org/litestar"
+        - "encode/starlette"
+        - "sanic-org/sanic"
   constraints:
     commercial_use: true
-    max_vram_gb: 8.0
+    max_vram_gb: 4.0
+
+- id: local-voice-assistant
+  idea: "Düşük gecikmeli yerel sesli asistan bileşenleri"
+  layers:
+    - name: vad
+      query: "voice activity detection python"
+      hf_task: null
+      expected_repos:
+        - "snakers4/silero-vad"
+        - "wiseman/py-webrtcvad"
+    - name: tts
+      query: "text to speech python"
+      hf_task: "text-to-speech"
+      expected_repos:
+        - "rany2/edge-tts"
+        - "suno-ai/bark"
+        - "rhasspy/piper"
+        - "coqui-ai/TTS"
+  constraints:
+    commercial_use: false
+    max_vram_gb: 16.0

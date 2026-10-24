@@ -385,8 +385,9 @@ class GitHubClient:
         if topics:
             for top in topics[:2]:
                 base_query += f" topic:{top}"
-        if language:
-            base_query += f" language:{language}"
+        effective_language = language or norm.detected_language
+        if effective_language:
+            base_query += f" language:{effective_language}"
 
         # 1. Fetch Bucket A (Leaders, sort=stars)
         q_a = f"{base_query} stars:>500 pushed:>{date_a} fork:false archived:false"

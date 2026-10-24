@@ -21,6 +21,27 @@ STOP_WORDS = {
     "okur", "yerel", "yerli", "bu", "su", "o", "gibi", "kadar", "icin",
 }
 
+# Programming language tokens mapped to GitHub language search filters
+PROGRAMMING_LANGUAGES = {
+    "python": "python",
+    "typescript": "typescript",
+    "javascript": "javascript",
+    "js": "javascript",
+    "ts": "typescript",
+    "golang": "go",
+    "go": "go",
+    "rust": "rust",
+    "cpp": "c++",
+    "c++": "c++",
+    "csharp": "c#",
+    "c#": "c#",
+    "java": "java",
+    "ruby": "ruby",
+    "php": "php",
+    "swift": "swift",
+    "kotlin": "kotlin",
+}
+
 # Common technical intent mappings (Turkish/informal -> canonical tech term)
 CANONICAL_SYNONYMS = {
     "fatura": "invoice",
@@ -63,30 +84,39 @@ class NormalizedQuery(NamedTuple):
     cleaned_query: str
     terms: list[str]
     is_modified: bool
+    detected_language: str | None = None
 
 
 def normalize_query(query: str, max_terms: int = 3) -> NormalizedQuery:
     """Clean natural-language queries into 2-3 high-density technical keywords.
 
     GitHub search syntax treats spaces as strict AND operators. Queries with 4+ words
-    frequently return 0 results. This function strips noise words and preserves
-    domain-specific terminology.
+    frequently return 0 results. This function strips noise words, extracts programming
+    language filters, and preserves domain-specific terminology.
 
     Example:
-        'I want a fast tool to parse pdf invoices' -> 'parse pdf invoice'
-        'şirket içi fatura okuyan yerel ocr aracı' -> 'invoice ocr'
+        'I want a fast python tool to parse pdf invoices'
+        -> terms: ['parse', 'pdf', 'invoice'], detected_language: 'python'
     """
     raw = query.strip()
     if not raw:
-        return NormalizedQuery(cleaned_query="", terms=[], is_modified=False)
+        return NormalizedQuery(cleaned_query="", terms=[], is_modified=False, detected_language=None)
 
     # Clean punctuation and lowercase
     cleaned = re.sub(r"[^\w\s-]", " ", raw)
     raw_tokens = [t for t in re.split(r"[\s_]+", cleaned) if t]
 
     meaningful: list[str] = []
+    detected_language: str | None = None
+
     for token in raw_tokens:
         normalized = _normalize_token(token)
+
+        # Extract language filter instead of wasting a term slot
+        if normalized in PROGRAMMING_LANGUAGES and detected_language is None:
+            detected_language = PROGRAMMING_LANGUAGES[normalized]
+            continue
+
         if normalized not in STOP_WORDS and len(normalized) > 1:
             if normalized not in meaningful:
                 meaningful.append(normalized)
@@ -103,4 +133,5 @@ def normalize_query(query: str, max_terms: int = 3) -> NormalizedQuery:
         cleaned_query=cleaned_str,
         terms=selected_terms,
         is_modified=is_modified,
+        detected_language=detected_language,
     )
