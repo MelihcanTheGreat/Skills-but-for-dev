@@ -1,11 +1,11 @@
-# stack-scout — Mimari ve Geliştirme Planı
+# skills-but-for-dev — Mimari ve Geliştirme Planı
 
 > **Tek cümle:** Geliştiricinin aklındaki fikri teknik katmanlara ayırıp, her katman için **güncel, sağlıklı ve lisansı uygun** GitHub reposu + Hugging Face modeli/Space'i öneren; Antigravity, Cursor ve diğer MCP uyumlu IDE'lere **MCP sunucusu + Skill** olarak bağlanan açık kaynak bir "stack küratörü".
 
-- **Durum:** Tasarım tamamlandı, MVP kodlamasına hazır
+- **Durum:** v0.2.0 Yayında (PyPI & GitHub)
 - **Dil / Çatı:** Python 3.11+, FastMCP, `httpx`, `huggingface_hub`, SQLite
-- **Dağıtım:** PyPI (`stack-scout`) → `uvx stack-scout`
-- **Son güncelleme:** 2026-10-24 (Revizyon 2 — ikinci çapraz denetim düzeltmeleri)
+- **Dağıtım:** PyPI (`skills-but-for-dev`) → `uvx skills-but-for-dev`
+- **Son güncelleme:** 2026-10-24 (Revizyon 3 — PyPI adoption + normalizer + OIDC)
 
 ---
 
@@ -31,9 +31,9 @@
 
 ## 1. Konumlandırma
 
-| Araç | Ne yapar | stack-scout'tan farkı |
+| Araç | Ne yapar | skills-but-for-dev'den farkı |
 |---|---|---|
-| Context7 vb. | Seçilmiş kütüphanenin güncel dokümanını getirir | **Kütüphane zaten seçilmiştir.** stack-scout bir adım öncesindedir: *"Hangi kütüphane/model?"* |
+| Context7 vb. | Seçilmiş kütüphanenin güncel dokümanını getirir | **Kütüphane zaten seçilmiştir.** skills-but-for-dev bir adım öncesindedir: *"Hangi kütüphane/model?"* |
 | GitHub resmi MCP | Ham repo araması | Sıralama, sağlık skoru, lisans, ivme yok |
 | HF resmi MCP | Ham model/Space araması | GitHub ile çapraz reçete yok, VRAM/lisans filtresi yok |
 | OSS Insight vb. | Trend analizi (web) | IDE içinde değil, mimari reçete üretmez |
@@ -62,16 +62,19 @@ flowchart LR
     U["Kullanıcı fikri"] --> A["IDE Ajanı (Antigravity / Cursor)"]
     S["SKILL.md"] -.->|"nasıl düşünülür"| A
     A -->|"1. Katmanlara ayırır"| A
-    A -->|"2. Tool çağrıları"| M["stack-scout MCP (FastMCP)"]
+    A -->|"2. Tool çağrıları"| M["skills-but-for-dev MCP (FastMCP)"]
 
-    subgraph M_INNER["stack-scout"]
+    subgraph M_INNER["skills-but-for-dev"]
         M --> GC["github_client"]
         M --> HC["hf_client"]
+        M --> PC["pypi_client"]
         GC --> SC["scoring"]
         HC --> SC
+        PC --> SC
         M --> SN["sanitize"]
         GC --> C[("SQLite cache")]
         HC --> C
+        PC --> C
     end
 
     GC --> GH["GitHub Search + Core REST"]
@@ -98,21 +101,23 @@ flowchart LR
 ## 4. Repo Yapısı
 
 ```
-stack-scout/
-├── src/stack_scout/
+skills-but-for-dev/
+├── src/skills_but_for_dev/
 │   ├── __init__.py
 │   ├── server.py            # FastMCP app + tool tanımları
-│   ├── config.py            # Ortam değişkenleri, ağırlıklar, TTL'ler
+│   ├── config.py            # Ortam değişkenleri, ağırlıklar, TTL'ler, gh CLI algılama
 │   ├── cache.py             # SQLite TTL cache (async)
 │   ├── github_client.py     # Arama kovaları, history adaptörü, sağlık
 │   ├── hf_client.py         # Model/Space arama, VRAM hesaplayıcı
+│   ├── pypi_client.py       # pypistats 30-günlük indirme sinyali
+│   ├── query_normalizer.py  # Dil tespiti ve anahtar kelime temizleyici
 │   ├── scoring.py           # Skor formülü, normalizasyon
 │   ├── licenses.py          # SPDX / HF lisans sınıflandırması
 │   ├── sanitize.py          # Prompt injection temizliği
 │   ├── ratelimit.py         # Search/Core kota takibi, semafor
 │   └── models.py            # Pydantic çıktı şemaları
-├── skills/stack-scout/SKILL.md        # Antigravity / Claude Code / Agent Skills formatı
-├── cursor/rules/stack-scout.mdc       # Cursor kural dosyası
+├── .agents/skills/skills-but-for-dev/SKILL.md  # Antigravity / Claude Code / Agent Skills formatı
+├── .cursor/rules/skills-but-for-dev.mdc       # Cursor kural dosyası
 ├── evals/
 │   ├── queries.yaml         # 20-30 örnek fikir + beklenen bileşenler
 │   └── run_evals.py
@@ -411,17 +416,17 @@ maintenance = ortalama(release_cadence, contributors_norm, closed_ratio, close_s
 
 ## 8. Skill (SKILL.md) Tasarımı
 
-Konum: `skills/stack-scout/SKILL.md` (Antigravity için kullanıcı `.agents/skills/stack-scout/` altına kopyalar veya global `skills/` dizinine koyar).
+Konum: `.agents/skills/skills-but-for-dev/SKILL.md` (Antigravity için `.agents/skills/skills-but-for-dev/` veya global `skills/` dizini).
 
 ```markdown
 ---
-name: stack-scout
+name: skills-but-for-dev
 description: Yeni bir proje, özellik veya AI bileşeni başlatılmadan ÖNCE güncel ve sağlıklı
   GitHub repoları ile Hugging Face modellerini/Space'lerini keşfetmek için kullan.
   "X yapan bir uygulama/ajan yapmak istiyorum", "hangi kütüphane/model" gibi isteklerde tetiklenir.
 ---
 
-# stack-scout
+# skills-but-for-dev
 
 ## Ne zaman kullan
 - Kullanıcı yeni bir proje/özellik fikri anlattığında, kod yazmadan önce.
@@ -453,7 +458,7 @@ description: Yeni bir proje, özellik veya AI bileşeni başlatılmadan ÖNCE g�
 - `license_class = custom` → kullanıcıyı lisansı okumaya yönlendir.
 ```
 
-Cursor için aynı içerik `cursor/rules/stack-scout.mdc` olarak (`description` + `alwaysApply: false` frontmatter ile) sunulur.
+Cursor için aynı içerik `.cursor/rules/skills-but-for-dev.mdc` olarak (`description` + `alwaysApply: false` frontmatter ile) sunulur.
 
 ---
 
@@ -534,13 +539,13 @@ Cursor için aynı içerik `cursor/rules/stack-scout.mdc` olarak (`description` 
 
 ```toml
 [project]
-name = "stack-scout"
-version = "0.1.0"
+name = "skills-but-for-dev"
+version = "0.2.0"
 requires-python = ">=3.11"
-dependencies = ["fastmcp>=2", "httpx>=0.27", "huggingface_hub>=0.25", "pydantic>=2", "aiosqlite", "platformdirs"]
+dependencies = ["fastmcp>=0.4", "httpx>=0.27", "huggingface_hub>=0.25", "pydantic>=2", "aiosqlite", "platformdirs"]
 
 [project.scripts]
-stack-scout = "stack_scout.server:main"
+skills-but-for-dev = "skills_but_for_dev.server:main"
 ```
 
 ### 12.2 Kullanıcı kurulumu
@@ -552,16 +557,16 @@ stack-scout = "stack_scout.server:main"
 ```json
 {
   "mcpServers": {
-    "stack-scout": {
+    "skills-but-for-dev": {
       "command": "uvx",
-      "args": ["stack-scout"],
+      "args": ["skills-but-for-dev"],
       "env": { "GITHUB_TOKEN": "ghp_...", "HF_TOKEN": "hf_..." }
     }
   }
 }
 ```
 
-**Skill:** `skills/stack-scout/` klasörünü workspace'te `.agents/skills/` altına (Antigravity) veya `cursor/rules/stack-scout.mdc` dosyasını `.cursor/rules/` altına kopyala.
+**Skill:** `.agents/skills/skills-but-for-dev/` klasörünü workspace'te `.agents/skills/` altına veya `.cursor/rules/skills-but-for-dev.mdc` dosyasını `.cursor/rules/` altına yerleştir.
 
 ### 12.3 README için olmazsa olmazlar
 - 30 saniyelik demo GIF (toplantı ajanı örneği)
@@ -599,8 +604,8 @@ stack-scout = "stack_scout.server:main"
 ### Faz 3 — Bağlam ve Skill (2-3 gün)
 - [ ] `sanitize.py` + injection test vakaları (HTML yorumu, zero-width, gizli details) + YAML frontmatter + başlığa duyarlı kırpma
 - [ ] `get_readme`, `get_repo_health`, `compare_candidates` tool'ları
-- [ ] `SKILL.md` ve `stack-scout.mdc`
-- [ ] Antigravity + Cursor'da uçtan uca manuel test (toplantı ajanı senaryosu)
+- [x] `SKILL.md` ve `skills-but-for-dev.mdc`
+- [x] Antigravity + Cursor'da uçtan uca test (toplantı ajanı senaryosu)
 
 ### Faz 4 — Kalite ve Yayın (3-4 gün)
 - [ ] `evals/queries.yaml` (20-30 fikir) + `run_evals.py`
@@ -648,7 +653,7 @@ stack-scout = "stack_scout.server:main"
 | D7 | ~~Eksik sinyal → ağırlık yeniden normalizasyonu~~ → **Eksik sinyal → `PRIOR = 0.25` + `confidence: low`** *(Rev. 2)* | Yeniden normalizasyon eksik veriyi ödüllendiriyordu (eksik ivme = diğer skorların ortalaması) |
 | D8 | VRAM: tek format, shard topla, mükerrer ele, GGUF varyantlarını ayrı raporla, diffusers istisnası | Çoklu format ve kuantizasyon kaynaklı 2-4x hatayı önler |
 | D9 | GitHub yıldız snapshot'ı artık moat değil; moat → HF ivme veri seti + skor kalitesi + eval seti | GitHub history'yi herkese açtı |
-| D10 | İsim: `stack-scout` | PyPI'da boş (2026-10-24), ne yaptığını tek bakışta anlatıyor |
+| D10 | İsim: `skills-but-for-dev` | Doğrudan geliştiriciler ve ajanlar için tasarlandığını tek bakışta anlatıyor |
 | D11 | Kova B `sort=stars` yerine best match *(Rev. 2)* | `75..3500` aralığında yıldız sıralaması breakout'ları API seviyesinde bile döndürmüyordu |
 | D12 | Issue sağlığı: `state=all&sort=created&direction=desc`, PR eleme, 14 gün sansür *(Rev. 2)* | `since` güncellenme tarihine göre filtreliyor; `/issues` PR'ları da döndürüyor |
 | D13 | `suspicious_spike` → `anomaly_warning: dormant_spike` (yaş > 180g, yıldız > 200, önceki 8 hafta ort. < 5) *(Rev. 2)* | Eski kural viral olan her genç repoyu işaretliyordu; bu bir güvenlik katmanı değil, uyarı |
