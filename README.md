@@ -1,5 +1,6 @@
-﻿# skills-but-for-dev
+# skills-but-for-dev
 
+[![PyPI](https://img.shields.io/pypi/v/skills-but-for-dev.svg)](https://pypi.org/project/skills-but-for-dev/)
 [![CI](https://github.com/MelihcanTheGreat/Skills-but-for-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/MelihcanTheGreat/Skills-but-for-dev/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python: 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)

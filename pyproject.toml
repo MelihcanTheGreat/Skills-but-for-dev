@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [
-    { name = "Melih", email = "developer@skills-but-for-dev.local" }
+    { name = "Melih" }
 ]
 keywords = ["mcp", "fastmcp", "agent", "cursor", "antigravity", "github", "huggingface", "skills-but-for-dev"]
 classifiers = [
