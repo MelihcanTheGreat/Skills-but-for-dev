@@ -25,7 +25,7 @@ jobs:
           pip install -e .[dev]
 
       - name: Run Pytest
-        run: pytest -v
+        run: pytest -vv -s --durations=0
 
   release:
     name: Build, Release & Publish
