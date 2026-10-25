@@ -64,6 +64,8 @@ class CacheManager:
 
             self.db_dir.mkdir(parents=True, exist_ok=True)
             self._db = await aiosqlite.connect(str(self.db_path))
+            if hasattr(self._db, "_thread") and self._db._thread:
+                self._db._thread.daemon = True
             await self._db.execute("PRAGMA journal_mode=WAL;")
             await self._db.execute("PRAGMA busy_timeout=5000;")
             await self._db.execute("PRAGMA synchronous=NORMAL;")
