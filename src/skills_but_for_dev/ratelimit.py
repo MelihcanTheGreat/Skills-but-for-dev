@@ -76,46 +76,56 @@ class GitHubRateLimiter:
 
             self.search_request_timestamps.append(time.time())
 
-    def update_from_headers(self, response: httpx.Response, is_search: bool = False) -> None:
-        """Parse rate limit headers from GitHub response."""
-        remaining_str = response.headers.get("x-ratelimit-remaining")
-        reset_str = response.headers.get("x-ratelimit-reset")
-
+    @staticmethod
+    def _parse_int_header(value: str | None) -> int | None:
         try:
-            if remaining_str is not None:
-                rem = int(remaining_str)
-                if is_search:
-                    self.search_remaining = rem
-                else:
-                    self.core_remaining = rem
-
-            if reset_str is not None:
-                rst = int(reset_str)
-                if is_search:
-                    self.search_reset_at = rst
-                else:
-                    self.core_reset_at = rst
+            return int(value) if value is not None else None
         except (ValueError, TypeError):
-            pass
+            return None
 
-        if response.status_code in (403, 429):
-            if is_search:
-                reset_secs = max(0, int((self.search_reset_at or 0) - time.time()))
-                self.last_search_error = (
-                    f"GitHub Search rate limit reached (HTTP {response.status_code}). "
-                    f"Resets in {reset_secs}s. Quick fix: run 'gh auth login' or export GITHUB_TOKEN."
-                )
-            else:
-                reset_secs = max(0, int((self.core_reset_at or 0) - time.time()))
-                self.last_core_error = (
-                    f"GitHub Core API rate limit reached (HTTP {response.status_code}). "
-                    f"Resets in {reset_secs}s. Quick fix: run 'gh auth login' or export GITHUB_TOKEN to unlock 5,000 req/hr."
-                )
-        elif response.status_code == 200:
+    def _update_error_state(self, status_code: int, is_search: bool) -> None:
+        if status_code == 200:
             if is_search:
                 self.last_search_error = None
             else:
                 self.last_core_error = None
+            return
+
+        if status_code not in (403, 429):
+            return
+
+        reset_at = self.search_reset_at if is_search else self.core_reset_at
+        reset_secs = max(0, int((reset_at or 0) - time.time()))
+
+        if is_search:
+            self.last_search_error = (
+                f"GitHub Search rate limit reached (HTTP {status_code}). "
+                f"Resets in {reset_secs}s. Quick fix: run 'gh auth login' or export GITHUB_TOKEN."
+            )
+        else:
+            self.last_core_error = (
+                f"GitHub Core API rate limit reached (HTTP {status_code}). "
+                f"Resets in {reset_secs}s. Quick fix: run 'gh auth login' or export GITHUB_TOKEN to unlock 5,000 req/hr."
+            )
+
+    def update_from_headers(self, response: httpx.Response, is_search: bool = False) -> None:
+        """Parse rate limit headers from GitHub response."""
+        rem = self._parse_int_header(response.headers.get("x-ratelimit-remaining"))
+        rst = self._parse_int_header(response.headers.get("x-ratelimit-reset"))
+
+        if rem is not None:
+            if is_search:
+                self.search_remaining = rem
+            else:
+                self.core_remaining = rem
+
+        if rst is not None:
+            if is_search:
+                self.search_reset_at = rst
+            else:
+                self.core_reset_at = rst
+
+        self._update_error_state(response.status_code, is_search)
 
     def can_make_core_request(self, min_remaining: int = 2) -> bool:
         """Return False if core remaining quota is critically low to protect rate limits."""
