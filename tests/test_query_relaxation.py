@@ -1,11 +1,9 @@
-"""Unit tests for query relaxation fallback mechanisms."""
-
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from skills_but_for_dev.github_client import GitHubClient
-from skills_but_for_dev.models import RepoScoreBreakdown
+from skills_but_for_dev.models import RepoScoreBreakdown, StarVelocity
 
 
 def _dummy_breakdown(pop: float = 0.8) -> RepoScoreBreakdown:
@@ -22,6 +20,8 @@ def _dummy_breakdown(pop: float = 0.8) -> RepoScoreBreakdown:
 async def test_query_relaxation_level_1_term_fallback():
     """Verify that if a 3-term query returns 0 results in Bucket A, it relaxes to 2 terms."""
     client = GitHubClient()
+    client.get_star_velocity = AsyncMock(return_value=(StarVelocity(v4=10.0, v12=10.0, accel=1.0), None))
+    client.get_repo_health = AsyncMock(return_value=0.9)
 
     mock_item = {
         "full_name": "py-pdf/pypdf",
@@ -46,8 +46,10 @@ async def test_query_relaxation_level_1_term_fallback():
     client._search_raw = AsyncMock(side_effect=mock_search_raw)
 
     with patch("skills_but_for_dev.github_client.score_stage1") as mock_score:
-        mock_score.return_value = (0.85, _dummy_breakdown(0.8), 0.9)
-        results = await client.search_repositories(query="I want a fast python tool to parse pdf invoices")
+        with patch("skills_but_for_dev.github_client.pypi_client.get_repo_downloads", new_callable=AsyncMock) as mock_pypi:
+            mock_pypi.return_value = 150000
+            mock_score.return_value = (0.85, _dummy_breakdown(0.8), 0.9)
+            results = await client.search_repositories(query="I want a fast python tool to parse pdf invoices")
 
     # Verify query relaxation executed
     assert len(call_queries) >= 2
@@ -62,6 +64,8 @@ async def test_query_relaxation_level_1_term_fallback():
 async def test_query_relaxation_level_2_language_fallback():
     """Verify that if language filter causes 0 results, it relaxes the language constraint."""
     client = GitHubClient()
+    client.get_star_velocity = AsyncMock(return_value=(StarVelocity(v4=10.0, v12=10.0, accel=1.0), None))
+    client.get_repo_health = AsyncMock(return_value=0.9)
 
     mock_item = {
         "full_name": "pymupdf/PyMuPDF",
@@ -84,8 +88,10 @@ async def test_query_relaxation_level_2_language_fallback():
     client._search_raw = AsyncMock(side_effect=mock_search_raw)
 
     with patch("skills_but_for_dev.github_client.score_stage1") as mock_score:
-        mock_score.return_value = (0.75, _dummy_breakdown(0.9), 0.8)
-        results = await client.search_repositories(query="pdf extraction python")
+        with patch("skills_but_for_dev.github_client.pypi_client.get_repo_downloads", new_callable=AsyncMock) as mock_pypi:
+            mock_pypi.return_value = 200000
+            mock_score.return_value = (0.75, _dummy_breakdown(0.9), 0.8)
+            results = await client.search_repositories(query="pdf extraction python")
 
     assert any("language:python" in q for q in call_queries)
     assert any("language:" not in q for q in call_queries)
@@ -98,6 +104,8 @@ async def test_query_relaxation_level_2_language_fallback():
 async def test_query_relaxation_level_3_wide_net_fallback():
     """Verify that if both Bucket A and B yield 0 items, wide-net search (stars:>15) triggers."""
     client = GitHubClient()
+    client.get_star_velocity = AsyncMock(return_value=(StarVelocity(v4=1.0, v12=1.0, accel=1.0), None))
+    client.get_repo_health = AsyncMock(return_value=0.5)
 
     mock_item = {
         "full_name": "niche/brand-new-ai-tool",
@@ -120,8 +128,10 @@ async def test_query_relaxation_level_3_wide_net_fallback():
     client._search_raw = AsyncMock(side_effect=mock_search_raw)
 
     with patch("skills_but_for_dev.github_client.score_stage1") as mock_score:
-        mock_score.return_value = (0.6, _dummy_breakdown(0.5), 0.5)
-        results = await client.search_repositories(query="brand-new niche tool")
+        with patch("skills_but_for_dev.github_client.pypi_client.get_repo_downloads", new_callable=AsyncMock) as mock_pypi:
+            mock_pypi.return_value = None
+            mock_score.return_value = (0.6, _dummy_breakdown(0.5), 0.5)
+            results = await client.search_repositories(query="brand-new niche tool")
 
     assert any("stars:>15" in q for q in call_queries)
     assert len(results) > 0
