@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHONKEYRING_BACKEND: keyring.backends.null.Keyring
+  CI: "true"
+
 jobs:
   lint:
     name: Lint & Code Quality (Ruff)
@@ -36,7 +40,7 @@ jobs:
     name: Test (Python ${{ matrix.python-version }} on ${{ matrix.os }})
     needs: lint
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
@@ -55,10 +59,10 @@ jobs:
       - name: Install package and dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]
+          python -m pip install -e ".[dev]"
 
       - name: Run Unit Tests with Pytest
-        run: pytest -vv -s --durations=0
+        run: python -m pytest -vv -s --durations=0
 
   build-check:
     name: Build Distribution (Wheel & sdist)
