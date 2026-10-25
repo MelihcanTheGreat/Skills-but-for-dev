@@ -26,7 +26,7 @@ def test_detect_github_token_from_gh_cli():
     mock_res.returncode = 0
     mock_res.stdout = "gho_mocked_cli_token_abc\n"
 
-    with patch.dict("os.environ", {"GITHUB_TOKEN": "", "GH_TOKEN": ""}, clear=True):
+    with patch.dict("os.environ", {"GITHUB_TOKEN": "", "GH_TOKEN": "", "CI": "", "GITHUB_ACTIONS": ""}):
         with patch("shutil.which", return_value="/usr/bin/gh"):
             with patch("subprocess.run", return_value=mock_res):
                 token, source = detect_github_token()
@@ -35,7 +35,7 @@ def test_detect_github_token_from_gh_cli():
 
 
 def test_detect_github_token_none():
-    with patch.dict("os.environ", {"GITHUB_TOKEN": "", "GH_TOKEN": ""}, clear=True):
+    with patch.dict("os.environ", {"GITHUB_TOKEN": "", "GH_TOKEN": "", "CI": "", "GITHUB_ACTIONS": ""}):
         with patch("shutil.which", return_value=None):
             token, source = detect_github_token()
             assert token is None
@@ -43,7 +43,7 @@ def test_detect_github_token_none():
 
 
 def test_settings_initializes_token_source():
-    with patch.dict("os.environ", {"GITHUB_TOKEN": "ghp_sample"}, clear=True):
+    with patch.dict("os.environ", {"GITHUB_TOKEN": "ghp_sample"}):
         s = Settings()
         assert s.github_token == "ghp_sample"
         assert s.token_source == "env"

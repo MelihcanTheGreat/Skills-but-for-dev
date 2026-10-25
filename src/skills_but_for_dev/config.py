@@ -25,6 +25,10 @@ def detect_github_token() -> tuple[str | None, str]:
     if env_token and env_token.strip():
         return env_token.strip(), "env"
 
+    # Avoid attempting CLI / DBus keyring calls in headless CI environments
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+        return None, "none"
+
     gh_path = shutil.which("gh")
     if gh_path:
         try:
@@ -33,6 +37,7 @@ def detect_github_token() -> tuple[str | None, str]:
                 capture_output=True,
                 text=True,
                 timeout=2.0,
+                stdin=subprocess.DEVNULL,
             )
             if res.returncode == 0:
                 cli_token = res.stdout.strip()
