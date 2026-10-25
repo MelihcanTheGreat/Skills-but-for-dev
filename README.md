@@ -1,6 +1,10 @@
 # skills-but-for-dev
 
 <p align="center">
+  <img src="assets/banner.png" alt="skills-but-for-dev banner" width="100%" style="border-radius: 12px; margin-bottom: 16px;">
+</p>
+
+<p align="center">
   <strong>Intelligent technology stack and open-source curator for AI coding agents.</strong><br>
   <em>Never let your AI agent build production code on abandoned 2022 libraries.</em>
 </p>
