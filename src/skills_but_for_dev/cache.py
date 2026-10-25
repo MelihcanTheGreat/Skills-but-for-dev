@@ -35,6 +35,7 @@ class CacheManager:
         self._db: aiosqlite.Connection | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._lock_obj: asyncio.Lock | None = None
+        self._lock_loop: asyncio.AbstractEventLoop | None = None
         self._initialized = False
 
     @property
@@ -43,8 +44,9 @@ class CacheManager:
             current_loop = asyncio.get_running_loop()
         except RuntimeError:
             current_loop = None
-        if self._lock_obj is None or (current_loop and getattr(self._lock_obj, "_loop", None) != current_loop):
+        if self._lock_obj is None or self._lock_loop != current_loop:
             self._lock_obj = asyncio.Lock()
+            self._lock_loop = current_loop
         return self._lock_obj
 
     async def _init_db(self) -> None:

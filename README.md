@@ -158,7 +158,7 @@ Benchmarked across realistic multi-layer agent scenarios using strict Ground Tru
 | **Cache Speedup** | **365.7x** | Massive latency reduction for recurring architecture queries |
 | **Commercial License Safety** | **95.2%** | Automatic filtering of GPL / CC-BY-NC restrictive licenses |
 | **PyPI Download Signal Rate** | **52.4%** | Over half of returned candidates enriched with production downloads |
-| **Unit Test Coverage** | **36 / 36 Passing** | Comprehensive suites for normalizer, PyPI client, and cache |
+| **Unit Test Coverage** | **40 / 40 Passing** | Comprehensive suites for normalizer, PyPI client, cache, and query relaxation |
 
 You can run the evaluation suite locally at any time:
 ```bash

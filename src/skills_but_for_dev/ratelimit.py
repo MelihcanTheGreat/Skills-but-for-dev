@@ -17,6 +17,9 @@ class GitHubRateLimiter:
         self._search_semaphore: asyncio.Semaphore | None = None
         self.search_request_timestamps: list[float] = []
         self._search_lock: asyncio.Lock | None = None
+        self._search_lock_loop: asyncio.AbstractEventLoop | None = None
+        self._search_semaphore: asyncio.Semaphore | None = None
+        self._search_semaphore_loop: asyncio.AbstractEventLoop | None = None
 
         # Tracked headers
         self.search_remaining: int | None = None
@@ -33,8 +36,9 @@ class GitHubRateLimiter:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
-        if self._search_lock is None or (loop and getattr(self._search_lock, "_loop", None) != loop):
+        if self._search_lock is None or self._search_lock_loop != loop:
             self._search_lock = asyncio.Lock()
+            self._search_lock_loop = loop
         return self._search_lock
 
     @property
@@ -43,8 +47,9 @@ class GitHubRateLimiter:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
-        if self._search_semaphore is None or (loop and getattr(self._search_semaphore, "_loop", None) != loop):
+        if self._search_semaphore is None or self._search_semaphore_loop != loop:
             self._search_semaphore = asyncio.Semaphore(3)
+            self._search_semaphore_loop = loop
         return self._search_semaphore
 
     async def acquire_search_slot(self) -> None:
